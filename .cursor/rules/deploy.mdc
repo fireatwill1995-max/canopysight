@@ -1,0 +1,12 @@
+---
+description: Auto-deploy to Fly.io when pushing from Cursor
+globs: 
+alwaysApply: false
+---
+
+# Deploy from Cursor
+
+- **To update the live app:** Commit and push to `main`. GitHub Actions will run and deploy to Fly.io automatically.
+- **Triggers:** Pushing changes under `apps/web/**` (or `packages/ui/**`, etc.) triggers "Deploy Web to Fly.io". Pushing under `apps/api/**` triggers "Deploy API to Fly.io".
+- **Workflows use:** `flyctl` (not `fly`) in `.github/workflows/deploy-*-fly.yml`.
+- See `DEPLOYMENT.md` for secrets and one-time setup.

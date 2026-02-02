@@ -14,9 +14,17 @@ Pushes to `main` automatically deploy API and Web to Fly.io when relevant paths 
 - `FLY_API_TOKEN` — From [Fly.io dashboard](https://fly.io/dashboard) → Account → Access Tokens. Required for both API and Web deploys.
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (optional) — Clerk publishable key for the web app. If unset, the web build uses a placeholder (Demo Login still works).
 
+**Auto-deploy from Cursor (or any editor)**
+
+1. Make your code changes in Cursor.
+2. Commit and push to `main`:
+   - `git add .` → `git commit -m "your message"` → `git push origin main`
+3. GitHub Actions runs automatically when you push (if changed paths match the table above). The live app updates after the workflow completes (usually a few minutes).
+4. No manual deploy step needed — push to `main` is enough.
+
 **One-time setup**
 
-1. Create Fly apps (if not already): `fly launch --config fly.api.toml --no-deploy` and `fly launch --config fly.web.toml --no-deploy` from repo root.
+1. Create Fly apps (if not already): `flyctl launch --config fly.api.toml --no-deploy` and `flyctl launch --config fly.web.toml --no-deploy` from repo root.
 2. Set `FLY_API_TOKEN` in GitHub: Settings → Secrets and variables → Actions.
 3. Optionally set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` for real Clerk auth on the deployed web app.
 4. Push to `main`; the workflows run and deploy. Manual run: Actions → "Deploy API to Fly.io" or "Deploy Web to Fly.io" → Run workflow.
