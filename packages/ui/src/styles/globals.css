@@ -1,0 +1,470 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* CANOPY. theme – Full coverage. Everywhere. (canopyinc.co) – minimal, editorial, black & white */
+    --background: 40 12% 98%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 12%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 40 10% 94%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 40 8% 96%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 55% 40%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 48%;
+    --warning-foreground: 0 0% 98%;
+    --info: 200 80% 42%;
+    --info-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 12%;
+    --radius: 0.5rem;
+    /* CANOPY. brand – single dark accent (no blue/orange) */
+    --rail-blue: 0 0% 12%;
+    --rail-blue-light: 0 0% 22%;
+    --rail-blue-dark: 0 0% 6%;
+    --rail-orange: 0 0% 12%;
+    --rail-orange-light: 0 0% 22%;
+    --rail-orange-dark: 0 0% 6%;
+    --rail-gray: 0 0% 45%;
+    --rail-gray-light: 0 0% 55%;
+    --rail-gray-dark: 0 0% 35%;
+    --rail-dark: 0 0% 9%;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+  }
+
+  .dark {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 92%;
+    --primary-foreground: 0 0% 8%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 50% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 85% 52%;
+    --warning-foreground: 0 0% 98%;
+    --info: 200 75% 50%;
+    --info-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 88%;
+    --rail-blue: 0 0% 88%;
+    --rail-blue-light: 0 0% 95%;
+    --rail-blue-dark: 0 0% 75%;
+    --rail-orange: 0 0% 88%;
+    --rail-orange-light: 0 0% 95%;
+    --rail-orange-dark: 0 0% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  body {
+    @apply text-foreground antialiased;
+    background: hsl(var(--background));
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  }
+  
+  .dark body {
+    background: hsl(var(--background));
+  }
+
+  /* CANOPY. mountain watermark – from canopyinc.co, behind everything; shows through boxes */
+  .canopy-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to top, hsl(var(--background)) 0%, transparent 45%),
+      url("https://images.squarespace-cdn.com/content/v1/63b7280f1480f03182fa6b95/2298fa28-5f3a-4142-b7bf-a688bcf45415/Singularity_Mountain");
+    background-size: 100% 100%, cover;
+    background-position: bottom center, bottom center;
+    background-repeat: no-repeat, no-repeat;
+    opacity: 0.2;
+    transition: opacity 0.2s ease;
+  }
+
+  .dark .canopy-watermark {
+    opacity: 0.16;
+    filter: invert(1);
+  }
+
+  /* CANOPY text watermark – moves slowly across the screen */
+  .canopy-text-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .canopy-text-watermark-track {
+    display: flex;
+    white-space: nowrap;
+    animation: canopy-text-scroll 120s linear infinite;
+  }
+
+  .canopy-text-watermark-text {
+    font-size: clamp(3rem, 18vw, 10rem);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: hsl(var(--foreground));
+    opacity: 0.07;
+    flex-shrink: 0;
+    padding-right: 0.5em;
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+
+  .dark .canopy-text-watermark-text {
+    opacity: 0.08;
+  }
+
+  @keyframes canopy-text-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Enhanced typography scale */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+  
+  h1 {
+    @apply text-4xl sm:text-5xl lg:text-6xl;
+  }
+  
+  h2 {
+    @apply text-3xl sm:text-4xl lg:text-5xl;
+  }
+  
+  h3 {
+    @apply text-2xl sm:text-3xl lg:text-4xl;
+  }
+  
+  h4 {
+    @apply text-xl sm:text-2xl;
+  }
+  
+  h5 {
+    @apply text-lg sm:text-xl;
+  }
+  
+  h6 {
+    @apply text-base sm:text-lg;
+  }
+  
+  p {
+    @apply leading-relaxed;
+  }
+  
+  /* Better code blocks */
+  code {
+    @apply px-1.5 py-0.5 rounded-md bg-muted text-sm font-mono;
+  }
+  
+  pre {
+    @apply p-4 rounded-lg bg-muted overflow-x-auto;
+  }
+  
+  pre code {
+    @apply bg-transparent p-0;
+  }
+  
+  /* Enhanced focus styles with better accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    outline-offset: 2px;
+  }
+  
+  /* Improved focus for interactive elements */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Dark mode: dropdowns, inputs, textareas have white/light background – use black text for readability */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    @apply bg-white text-gray-900 border-gray-300;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    @apply text-gray-500;
+  }
+  .dark select option {
+    @apply bg-white text-gray-900;
+  }
+  
+  /* Touch-friendly interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Mobile-optimized buttons */
+  button, a {
+    @apply touch-manipulation;
+  }
+  
+  /* Prevent text selection on buttons */
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Better selection colors */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+  
+  /* Smooth transitions for theme changes */
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+@layer components {
+  /* CANOPY. cards – semi-transparent so watermark shows through, text/border on top */
+  .card-gradient {
+    @apply rounded-xl border border-border bg-card/90 dark:bg-card/90 backdrop-blur-md shadow-sm;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .canopy-panel {
+    @apply rounded-xl border border-border bg-card/85 dark:bg-card/85 backdrop-blur-md shadow-sm;
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-lg hover:shadow-black/5 hover:border-border hover:-translate-y-0.5;
+    @apply dark:hover:shadow-lg dark:hover:shadow-black/20;
+  }
+
+  /* Page shell – uniform container for every page */
+  .canopy-page {
+    @apply container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl;
+  }
+  
+  /* Modern status badges with better contrast */
+  .status-online {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50;
+    @apply font-medium px-2.5 py-1 rounded-md text-xs;
+  }
+  
+  .status-offline {
+    @apply bg-gray-100 text-gray-700 border border-gray-300 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700;
+    @apply font-medium px-2.5 py-1 rounded-md text-xs;
+  }
+  
+  .status-warning {
+    @apply bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50;
+    @apply font-medium px-2.5 py-1 rounded-md text-xs;
+  }
+  
+  .status-critical {
+    @apply bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/50;
+    @apply font-medium px-2.5 py-1 rounded-md text-xs;
+  }
+  
+  .status-maintenance {
+    @apply bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50;
+    @apply font-medium px-2.5 py-1 rounded-md text-xs;
+  }
+  
+  /* CANOPY. glass – watermark shows through */
+  .glass {
+    @apply rounded-xl border border-border bg-card/80 dark:bg-card/80 backdrop-blur-xl shadow-md;
+    @apply dark:shadow-black/20;
+  }
+
+  .glass-strong {
+    @apply rounded-xl border border-border bg-card/90 dark:bg-card/90 backdrop-blur-2xl shadow-lg;
+    @apply dark:shadow-black/30;
+  }
+
+  /* CANOPY. primary button */
+  .btn-gradient {
+    @apply bg-primary text-primary-foreground;
+    @apply hover:opacity-90 hover:shadow-md hover:scale-[1.02];
+    @apply active:scale-[0.98];
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  /* Subtle animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  /* Loading shimmer effect */
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+  
+  .shimmer::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    animation: shimmer 2s infinite;
+  }
+  
+  .dark .shimmer::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    );
+  }
+  
+  /* Modern badge styles */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply transition-colors duration-200;
+  }
+  
+  .badge-primary {
+    @apply bg-primary/10 text-primary border border-primary/20;
+    @apply dark:bg-primary/20 dark:text-primary dark:border-primary/30;
+  }
+  
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-700 border border-emerald-200;
+    @apply dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50;
+  }
+  
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700 border border-amber-200;
+    @apply dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50;
+  }
+  
+  .badge-destructive {
+    @apply bg-red-100 text-red-700 border border-red-200;
+    @apply dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/50;
+  }
+}
+
+@layer utilities {
+  /* Custom animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  /* CANOPY. heading text – solid foreground */
+  .text-gradient {
+    @apply text-foreground;
+  }
+  
+  /* Modern shadow utilities */
+  .shadow-glow {
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+  }
+  
+  .shadow-glow-lg {
+    box-shadow: 0 0 30px -5px hsl(var(--primary) / 0.4);
+  }
+}

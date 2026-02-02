@@ -1,0 +1,434 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enable pgvector extension
+// Run: CREATE EXTENSION IF NOT EXISTS vector;
+
+// Multi-tenant support
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  sites              Site[]
+  devices            Device[]
+  detectionEvents    DetectionEvent[]
+  alerts             Alert[]
+  zones              DetectionZone[]
+  videoClips         VideoClip[]
+  heatmaps           Heatmap[]
+  incidentReports    IncidentReport[]
+  systemHealth       SystemHealth[]
+  auditLogs          AuditLog[]
+  notificationPrefs  NotificationPreference[]
+
+  @@index([slug])
+}
+
+// User management via Clerk
+model User {
+  id             String   @id @default(cuid())
+  clerkId        String   @unique
+  email          String
+  firstName      String?
+  lastName       String?
+  role           String   @default("viewer") // admin, supervisor, viewer
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([clerkId])
+  @@index([organizationId])
+}
+
+// Physical rail locations
+model Site {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  address        String?
+  latitude       Float
+  longitude      Float
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  devices        Device[]
+  detectionEvents DetectionEvent[]
+  alerts         Alert[]
+  zones          DetectionZone[]
+  videoClips     VideoClip[]
+  heatmaps       Heatmap[]
+  incidentReports IncidentReport[]
+
+  @@index([organizationId])
+  @@index([latitude, longitude])
+}
+
+// Edge hardware units (Raspberry Pi + cameras)
+model Device {
+  id             String   @id @default(cuid())
+  name           String
+  siteId         String
+  serialNumber   String?  @unique
+  firmwareVersion String?
+  status         String   @default("offline") // online, offline, maintenance, error
+  lastHeartbeat  DateTime?
+  ipAddress      String?
+  macAddress     String?
+  deviceType     String   @default("camera") // camera, meshconnect
+  streamUrl      String?  // Optional: YouTube URL or other stream URL for live feed
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site             Site              @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  cameraConfigs    CameraConfig[]
+  detectionEvents  DetectionEvent[]
+  alerts           Alert[]
+  videoClips       VideoClip[]
+  systemHealth     SystemHealth[]
+  deploymentLogs   DeploymentLog[]
+  meshConnectConfig MeshConnectConfig?
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([status])
+  @@index([lastHeartbeat])
+  @@index([deviceType])
+}
+
+// Camera settings, zones, FOV mappings
+model CameraConfig {
+  id          String   @id @default(cuid())
+  deviceId    String
+  cameraIndex Int      @default(0)
+  name        String?
+  resolution  String?  // e.g., "1920x1080"
+  fps         Int?      @default(30)
+  fov         Json?     // Field of view mapping
+  is360       Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+}
+
+// MeshConnect device configuration
+model MeshConnectConfig {
+  id                String   @id @default(cuid())
+  deviceId          String   @unique
+  frequencyBand     String   // "1.35-1.44", "2.20-2.50", "dual"
+  throughput        Int?     // Mbps (up to 100)
+  latency           Float?   // ms (target ~7ms)
+  encryptionEnabled Boolean  @default(true)
+  encryptionKey     String?  // AES-256 key (encrypted)
+  meshNodeId        String?  // Unique node identifier in mesh
+  parentNodeId      String?  // Parent node in mesh topology
+  networkTopology   Json?    // Full mesh network topology
+  wifiEnabled       Boolean  @default(false)
+  wifiSSID          String?
+  wifiPassword      String?  // Encrypted
+  ethernetPorts     Int?     @default(4) // Number of bridged Ethernet ports
+  isGateway         Boolean  @default(false) // Is this node a gateway to external network
+  gatewayAddress    String?  // Gateway IP if this is not the gateway
+  nodeStatus        String   @default("disconnected") // connected, disconnected, syncing, error
+  lastSyncTime      DateTime?
+  signalStrength    Float?   // dBm
+  neighborNodes     Json?    // Array of connected neighbor node IDs
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([meshNodeId])
+  @@index([parentNodeId])
+  @@index([nodeStatus])
+}
+
+// Installation & maintenance records
+model DeploymentLog {
+  id          String   @id @default(cuid())
+  deviceId    String
+  action      String   // install, update, maintenance, decommission
+  performedBy String?
+  notes       String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([createdAt])
+}
+
+// AI detections with classifications
+model DetectionEvent {
+  id             String   @id @default(cuid())
+  deviceId       String
+  siteId         String
+  type           String   // person, vehicle, animal, unknown
+  confidence     Float
+  timestamp      DateTime
+  boundingBox    Json     // { x, y, width, height }
+  zoneIds        String[] // Array of zone IDs
+  riskScore      Float?
+  videoClipId    String?  @unique
+  embedding      Bytes?   // optional: use vector(1536) + pgvector when available for similarity search
+  metadata       Json?
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  device       Device       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  videoClip    VideoClip?   @relation(fields: [videoClipId], references: [id], onDelete: SetNull)
+  alerts       Alert[]
+  riskScores   RiskScore[]
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([deviceId])
+  @@index([type])
+  @@index([timestamp])
+  @@index([riskScore])
+  @@index([createdAt])
+  // Composite indexes for common query patterns
+  @@index([organizationId, siteId, timestamp])
+  @@index([organizationId, deviceId, timestamp])
+  @@index([organizationId, type, timestamp])
+  @@index([siteId, timestamp, riskScore])
+}
+
+// Calculated risk assessments per event
+model RiskScore {
+  id               String   @id @default(cuid())
+  detectionEventId String
+  overallScore     Float    // 0-100
+  speedFactor      Float?
+  directionFactor  Float?
+  dwellTimeFactor  Float?
+  zoneFactor       Float?
+  timeOfDayFactor  Float?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id], onDelete: Cascade)
+
+  @@index([detectionEventId])
+  @@index([overallScore])
+}
+
+// Triggered alerts with severity levels
+model Alert {
+  id               String   @id @default(cuid())
+  detectionEventId String?
+  siteId           String
+  deviceId         String?
+  severity         String   // advisory, warning, critical
+  status           String   @default("active") // active, acknowledged, resolved, dismissed
+  title            String
+  message          String
+  acknowledgedBy   String?
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  metadata         Json?
+  organizationId   String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  device         Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  detectionEvent DetectionEvent? @relation(fields: [detectionEventId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  // Composite indexes for common query patterns
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, severity, status])
+  @@index([siteId, status, createdAt])
+}
+
+// Configurable safety zones (crossing, approach, exclusion)
+model DetectionZone {
+  id             String   @id @default(cuid())
+  siteId         String
+  name           String
+  type           String   // crossing, approach, exclusion, custom
+  points         Json     // Array of { x, y } points
+  cameraId       String?
+  isActive       Boolean  @default(true)
+  sensitivity    Float    @default(50) // 0-100
+  metadata       Json?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([isActive])
+}
+
+// Event clips metadata (NOT video files - store S3/local paths)
+model VideoClip {
+  id               String   @id @default(cuid())
+  detectionEventId String?
+  deviceId         String
+  siteId           String
+  filePath         String   // S3 path or local path
+  thumbnailPath    String?
+  duration         Float    // seconds
+  startTime        DateTime
+  endTime          DateTime
+  fileSize         Int      // bytes
+  mimeType         String
+  organizationId   String
+  createdAt        DateTime @default(now())
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  device         Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  detectionEvent DetectionEvent? @relation
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([deviceId])
+  @@index([startTime])
+}
+
+// Aggregated spatial analytics
+model Heatmap {
+  id             String   @id @default(cuid())
+  siteId         String
+  startDate      DateTime
+  endDate        DateTime
+  data           Json     // Array of { x, y, intensity, timestamp }
+  resolution     Int      @default(100)
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([startDate, endDate])
+  // Composite index for heatmap queries
+  @@index([organizationId, siteId, startDate, endDate])
+}
+
+// Manual incident logging
+model IncidentReport {
+  id             String   @id @default(cuid())
+  siteId         String
+  title          String
+  description    String
+  severity       String   // low, medium, high, critical
+  reportedBy    String?
+  reportedAt    DateTime @default(now())
+  resolvedAt    DateTime?
+  metadata       Json?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([severity])
+  @@index([reportedAt])
+}
+
+// Device telemetry & uptime
+model SystemHealth {
+  id             String   @id @default(cuid())
+  deviceId       String?
+  organizationId String
+  cpuUsage       Float?
+  memoryUsage    Float?
+  diskUsage      Float?
+  temperature    Float?
+  uptime         Float?   // seconds
+  networkLatency Float?
+  metadata       Json?
+  timestamp      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device       Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([deviceId])
+  @@index([timestamp])
+  // Composite index for device health queries
+  @@index([organizationId, deviceId, timestamp])
+}
+
+// Compliance trail
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String   // create, update, delete, view
+  resourceType   String   // site, device, zone, etc.
+  resourceId     String?
+  changes        Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
+
+// Alert routing rules
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?  // null = org-wide
+  channel        String   // sms, email, push, webhook
+  severity       String?  // advisory, warning, critical, null = all
+  siteIds        String[] // empty = all sites
+  isActive       Boolean  @default(true)
+  config         Json?    // channel-specific config
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([isActive])
+}

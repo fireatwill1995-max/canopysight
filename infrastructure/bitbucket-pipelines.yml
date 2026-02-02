@@ -1,0 +1,76 @@
+image: node:18
+
+definitions:
+  steps:
+    - step: &install
+        name: Install Dependencies
+        caches:
+          - node
+        script:
+          - npm ci --legacy-peer-deps
+        artifacts:
+          - node_modules/**
+
+    - step: &lint
+        name: Lint
+        script:
+          - npm run lint
+
+    - step: &type-check
+        name: Type Check
+        script:
+          - npm run type-check
+
+    - step: &test
+        name: Run Tests
+        script:
+          - npm run test
+
+    - step: &build-web
+        name: Build Web
+        script:
+          - cd apps/web
+          - npm run build
+
+    - step: &build-api
+        name: Build API
+        script:
+          - cd apps/api
+          - npm run build
+
+    - step: &build-edge
+        name: Build Edge Agent
+        script:
+          - cd apps/edge-agent
+          - npm run build
+
+pipelines:
+  default:
+    - step: *install
+    - step: *lint
+    - step: *type-check
+    - parallel:
+        - step: *test
+        - step: *build-web
+        - step: *build-api
+        - step: *build-edge
+
+  branches:
+    main:
+      - step: *install
+      - step: *lint
+      - step: *type-check
+      - step: *test
+      - parallel:
+          - step: *build-web
+          - step: *build-api
+          - step: *build-edge
+      - step:
+          name: Deploy to Production
+          deployment: production
+          script:
+            - echo "Deploy to production"
+            # Add deployment commands here
+
+options:
+  node: 18

@@ -1,0 +1,22 @@
+{
+  "name": "@canopy-sight/ai",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@langchain/anthropic": "^0.1.0",
+    "@langchain/core": "^0.1.0",
+    "@langchain/openai": "^0.0.14",
+    "langchain": "^0.1.0",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

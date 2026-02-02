@@ -1,0 +1,37 @@
+# Git and IDE
+.git
+.github
+.cursor
+.vscode
+*.md
+!apps/api/README*
+
+# Dependencies (reinstalled in image)
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+dist
+build
+.turbo
+*.tsbuildinfo
+
+# Env and secrets (set via Fly secrets)
+.env
+.env.*
+!.env.example
+
+# Logs and temp
+*.log
+tmp
+temp
+.DS_Store
+
+# Test and misc
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+__tests__
+mcps

@@ -1,0 +1,35 @@
+# fly.toml app configuration file generated for canopy-sight-api on 2026-01-31T17:20:41+10:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'canopy-sight-api'
+primary_region = 'syd'
+
+[build]
+  dockerfile = 'apps/api/Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  HOST = '0.0.0.0'
+  FRONTEND_URL = 'https://canopy-sight-web.fly.dev'
+  ALLOWED_ORIGINS = 'https://canopy-sight-web.fly.dev,http://localhost:3000,http://localhost:3001,http://localhost:3002'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512

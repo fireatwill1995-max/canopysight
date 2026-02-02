@@ -1,0 +1,36 @@
+# Deploy API from repo root so Docker build context is monorepo root
+# Usage: fly deploy --config fly.api.toml -a canopy-sight-api
+
+app = "canopy-sight-api"
+primary_region = "syd"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  FRONTEND_URL = "https://canopy-sight-web.fly.dev"
+  ALLOWED_ORIGINS = "https://canopy-sight-web.fly.dev,http://localhost:3000,http://localhost:3001,http://localhost:3002"
+
+# Run migrations manually if needed: fly ssh console -a canopy-sight-api -C "sh -c 'cd ../../packages/database && npx prisma migrate deploy'"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

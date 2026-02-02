@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CANOPY. — Business Plan</title>
+  <style>
+    :root { --ink: #1a1a1a; --muted: #555; --brand: #0d0d0d; --rule: #ccc; --accent: #2d5016; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.55; color: var(--ink); max-width: 820px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.85rem; font-weight: 700; margin-top: 0; border-bottom: 2px solid var(--brand); padding-bottom: 0.5rem; }
+    h2 { font-size: 1.28rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.6rem; }
+    h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.1rem; margin-bottom: 0.4rem; }
+    p { margin: 0.5rem 0; }
+    ul, ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+    li { margin: 0.28rem 0; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--rule); padding: 0.5rem 0.7rem; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; }
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .no-print { margin-bottom: 1rem; }
+    .page-break { page-break-before: always; }
+    .price { font-weight: 700; white-space: nowrap; }
+    .tier-name { font-weight: 600; color: var(--accent); }
+    @media print { body { padding: 1rem; } .no-print { display: none !important; } a { color: var(--ink); } h2 { page-break-after: avoid; } table { page-break-inside: avoid; } }
+  </style>
+</head>
+<body>
+
+  <div class="no-print" style="background:#f0f0f0;padding:0.75rem 1rem;border-radius:6px;margin-bottom:1.5rem;">
+    <strong>PDF:</strong> File → Print → Save as PDF (A4, default margins). Or run: <code>node scripts/generate-unified-plan-pdf.js</code>
+  </div>
+
+  <h1>CANOPY. — Business Plan</h1>
+  <p class="muted">Risk intelligence for complex, changing environments · United Kingdom</p>
+  <p><strong>Prepared for:</strong> Prospective clients, partners, and stakeholders</p>
+  <p><strong>Offered by:</strong> Northern Edge Software, Darius, CANOPY.</p>
+
+  <h2 id="executive">1. Executive summary</h2>
+  <p><strong>CANOPY.</strong> is a software platform that helps organisations understand how risk emerges in complex, changing environments. Existing safety and monitoring systems are largely reactive and compliance-driven: they focus on isolated incidents, static dashboards, and real-time alerts without context. As a result, organisations often know <em>what happened</em> but not <em>how risk formed</em>.</p>
+  <p>CANOPY. addresses this by focusing on <strong>patterns rather than policing</strong>. The platform combines deployable sensing, computer vision, and synthetic models to provide continuous situational awareness and to identify patterns that lead to safety incidents before they occur. <strong>CANOPY. Sight™</strong> is the web-based product: live and recorded camera views, event and incident timelines, pattern detection (repeat zone entry, dwell, congestion), synthetic site models for spatial context, and playback and analytics across time. It is designed for environments where permanent infrastructure is impractical—rail corridors, warehouses, workshops, and manual-labour sites.</p>
+  <p>The system is built and delivered by <strong>Northern Edge Software</strong>, <strong>Darius</strong>, and <strong>CANOPY.</strong>—no in-house development team is required. Full deployment and go-live are targeted within <strong>6 months</strong> of contract. The platform is operational today, with simulation mode for demonstrations and early pilots underway; access is expanding via request-based onboarding.</p>
+
+  <h2 id="opportunity" class="page-break">2. The opportunity: problem and market</h2>
+  <p>Current safety and monitoring approaches typically focus on isolated incidents, static dashboards, and real-time alerts without context. They struggle to identify long-term risk patterns, adapt to temporary or evolving sites, or explain why incidents keep recurring. CANOPY. is aimed at sectors where this gap is most acute.</p>
+  <p><strong>Initial target sectors:</strong> rail and transport infrastructure; warehouses and logistics; workshops and manual-labour environments. These markets share high safety risk, changing layouts and workflows, temporary operations, and strong regulatory and insurance pressures. CANOPY. is designed to scale across sectors without re-engineering the core system.</p>
+
+  <h2 id="solution">3. Solution and differentiation</h2>
+  <p>Rather than monitoring individuals, CANOPY. helps organisations understand <strong>how environments create risk</strong>. The platform ingests data from deployable cameras and sensors; detects movement, presence, and environmental conditions; models each site as a living synthetic environment; and identifies repeat near-misses, risk hotspots, and behavioural drift over time.</p>
+  <p>Differentiation rests on three principles:</p>
+  <ol>
+    <li><strong>Patterns over policing</strong> — How risk emerges over time, not individual fault.</li>
+    <li><strong>Synthetic models at the core</strong> — Environments are living models, not static dashboards.</li>
+    <li><strong>Deployable by default</strong> — Built for temporary and changing sites, not fixed CCTV.</li>
+  </ol>
+  <p>This positioning reduces surveillance concerns and delivers higher-value insight.</p>
+
+  <h2 id="product" class="page-break">4. Product: CANOPY. Sight™</h2>
+  <p>CANOPY. Sight™ is the web-based platform for viewing and analysing operational environments. It delivers live situational awareness, automated detection and alerting, and time-based playback and analytics, aligned with CANOPY.’s vision of deployable sensing feeding synthetic models with operational intelligence for decision-makers.</p>
+  <h3>Core capabilities</h3>
+  <ul>
+    <li><strong>Dashboard</strong> — Single view of sites, devices, and system health.</li>
+    <li><strong>Sites & devices</strong> — Manage locations and edge units (cameras, MeshConnect nodes); monitor status and heartbeats.</li>
+    <li><strong>AI detection</strong> — Object detection (person, vehicle, animal) with zone breach detection and risk scoring.</li>
+    <li><strong>Alerts</strong> — Severity-based alerts (advisory, warning, critical) with acknowledge/resolve workflow.</li>
+    <li><strong>Playback</strong> — Browse events and access time-limited signed links for relevant video clips.</li>
+    <li><strong>Analytics & heatmaps</strong> — Date-filtered analytics and spatial heatmaps; pattern detection (repeat zone entry, dwell, congestion).</li>
+    <li><strong>Incidents</strong> — Log and track manual incident reports with severity and resolution.</li>
+    <li><strong>Synthetic site models</strong> — Spatial context and overlays for playback and review.</li>
+    <li><strong>Multi-tenant & roles</strong> — Organisation-scoped data; admin, supervisor, and viewer roles.</li>
+  </ul>
+  <p>The platform supports both real deployments and <strong>simulation mode</strong> for demonstrations and pilots.</p>
+  <h3>Why choose CANOPY. Sight</h3>
+  <ul>
+    <li><strong>No black box</strong> — Confidence and uncertainty are surfaced; you see what the system knows and how sure it is.</li>
+    <li><strong>Built for operators</strong> — Designed for people who need to act, not only for data scientists.</li>
+    <li><strong>API-first & integrable</strong> — Dashboards, alerts, and reports can feed existing GIS and ops tools.</li>
+    <li><strong>Edge-ready</strong> — Runs on edge hardware (e.g. Raspberry Pi); optional MeshConnect for low-latency wireless backhaul.</li>
+    <li><strong>Offline resilience</strong> — Edge agents queue events when connectivity is lost and sync when back online.</li>
+  </ul>
+
+  <h2 id="commercial" class="page-break">5. Commercial model</h2>
+  <p>CANOPY. operates a <strong>site-based SaaS subscription model</strong>, aligned with how organisations budget for safety and operations. Subscriptions are priced per active site; depth of insight and analysis is reflected in tier choice. Site modelling is offered as a <strong>one-time setup service</strong> (separate from subscription) to keep SaaS economics clean; setup costs can be amortised over the first 6–12 months where required.</p>
+  <p>Deployment is designed for <strong>rapid rollout</strong>, minimal on-site disruption, and temporary or mobile installations. Hardware may be provided by CANOPY., leased, or customer-supplied (existing CCTV where appropriate). The platform is <strong>hardware-agnostic</strong>.</p>
+
+  <h2 id="pricing">6. Pricing</h2>
+  <p>All prices are in <strong>British Pounds (GBP)</strong>. Euro (EUR) equivalents are indicative and may be updated at contract. VAT is not included; applicable VAT will be added where required.</p>
+
+  <h3>Subscription tiers (per site, indicative)</h3>
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Monthly (GBP) per site</th><th>Included</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tier-name">CANOPY. Observe</td>
+        <td class="price">£250–£400</td>
+        <td>Live and recorded viewing; event timeline; basic alerts; playback; simulation mode; short-term data retention.</td>
+      </tr>
+      <tr>
+        <td class="tier-name">CANOPY. Insight</td>
+        <td class="price">£750–£1,200</td>
+        <td>Pattern detection and trends; time-based risk analysis; synthetic model overlays; multi-device sites; extended data retention.</td>
+      </tr>
+      <tr>
+        <td class="tier-name">CANOPY. Predict</td>
+        <td class="price">£2,000–£3,500</td>
+        <td>Cross-site comparisons; intervention impact analysis; risk drift indicators; scenario testing within synthetic models (advanced, later phase).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Site model setup (one-off)</h3>
+  <p>Not all deployments need the same spatial or visual fidelity. Three levels are available:</p>
+  <table>
+    <thead>
+      <tr><th>Level</th><th>One-off (GBP)</th><th>Includes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Level 1 — Contextual</strong></td>
+        <td class="price">£500–£1,000</td>
+        <td>Site layout and boundaries; safety and exclusion zones; camera placement; reference imagery or schematics. Default for most deployments.</td>
+      </tr>
+      <tr>
+        <td><strong>Level 2 — Visual</strong></td>
+        <td class="price">£2,000–£5,000</td>
+        <td>Drone capture; 3D mesh or orthomosaic; visual context for playback and review.</td>
+      </tr>
+      <tr>
+        <td><strong>Level 3 — High-fidelity synthetic</strong></td>
+        <td class="price">£8,000+</td>
+        <td>High-resolution photogrammetry; optional RTK accuracy; simulation and comparative analysis. For complex, high-risk environments.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Alternative: camera-based tiers</h3>
+  <p>Where site-based tiers are not yet applied, subscriptions can be structured by camera count:</p>
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Cameras</th><th>Monthly (GBP)</th><th>Yearly (GBP)</th><th>Monthly (EUR approx.)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Starter</td><td>1–10</td><td class="price">£349</td><td class="price">£3,490</td><td>€410</td></tr>
+      <tr><td>Growth</td><td>11–50</td><td class="price">£699</td><td class="price">£6,990</td><td>€820</td></tr>
+      <tr><td>Scale</td><td>51–150</td><td class="price">£1,299</td><td class="price">£12,990</td><td>€1,520</td></tr>
+      <tr><td>Enterprise</td><td>151+</td><td class="price">Custom</td><td class="price">Custom</td><td>Custom</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Yearly pricing gives approximately 2 months free. Implementation: full deployment and go-live within 6 months of contract.</p>
+
+  <h3>What’s included in subscription</h3>
+  <ul>
+    <li>Web dashboard, sites, devices, alerts, playback, analytics, incidents; API access (tRPC); multi-tenant organisation; role-based access.</li>
+    <li>Edge agent software for supported hardware (e.g. Raspberry Pi); detection events, risk scoring, zone breach logic.</li>
+    <li>Standard retention for event and clip metadata (e.g. 90 days); clip storage volume as per tier; email support, documentation, and standard onboarding.</li>
+  </ul>
+
+  <h3>Per-camera and storage add-ons</h3>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>GBP</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Extra cameras above tier limit</td><td class="price">£18/camera/month</td><td>Billed in addition to tier</td></tr>
+      <tr><td>Clip storage (standard)</td><td>Included</td><td>Up to tier limit (e.g. 50 GB Starter, 200 GB Growth, 500 GB Scale)</td></tr>
+      <tr><td>Extended clip storage</td><td class="price">£0.08/GB/month</td><td>Beyond included allowance</td></tr>
+      <tr><td>Extended retention (metadata)</td><td class="price">£49/month</td><td>e.g. 12-month retention</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Optional add-ons</h3>
+  <table>
+    <thead>
+      <tr><th>Add-on</th><th>Description</th><th>GBP (indicative)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>AI reports & NL query</td><td>Automated incident analysis, natural-language questions over your data, report generation (Claude)</td><td>£79–149/month</td></tr>
+      <tr><td>MeshConnect integration</td><td>Mesh networking for edge devices; low-latency wireless backhaul; topology and status in dashboard</td><td>£99/month + per-node</td></tr>
+      <tr><td>Live video streams</td><td>WebRTC/HLS live view from cameras (when available in release)</td><td>£49/month</td></tr>
+      <tr><td>UAV / drone ingestion</td><td>Workflow and integration for UAV imagery and telemetry</td><td>Custom</td></tr>
+      <tr><td>Extra users / SSO</td><td>Additional user seats or SSO/SAML (e.g. Clerk Enterprise)</td><td>From £25/month</td></tr>
+      <tr><td>Dedicated support</td><td>Named contact, SLA, priority response</td><td>Custom</td></tr>
+      <tr><td>On-premise deployment</td><td>API and database hosted in your environment; we manage updates</td><td>Custom</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="partnership" class="page-break">7. Partnership and delivery</h2>
+  <p>The offering is delivered by a joint partnership:</p>
+  <ul>
+    <li><strong>Northern Edge Software</strong> — Software delivery, integration, and operational support.</li>
+    <li><strong>Darius</strong> — Drone and UAV expertise, sensor deployment, and real-world operational guidance.</li>
+    <li><strong>CANOPY.</strong> — Product vision, synthetic models, and operational intelligence layer.</li>
+  </ul>
+  <p>Darius brings frontline expertise in drone and UAV operations, including three years in Ukraine with Ukrainian special forces supporting operations where deployable sensing and aerial intelligence were critical. That experience informs how we design and deploy sensing layers—rapid deployment, geospatial tagging, and reliable data ingestion in demanding environments. The system is practical for field use, not only in theory.</p>
+
+  <h2 id="value">8. Value and ROI</h2>
+  <p>CANOPY. Sight reduces the cost of manual monitoring, speeds response to incidents, and supports compliance and auditability.</p>
+  <ul>
+    <li><strong>Fewer manual patrols</strong> — Continuous AI-assisted monitoring can reduce reliance on 24/7 human patrols at key sites.</li>
+    <li><strong>Faster response</strong> — Alerts and playback help operators react quickly and verify events with clip evidence.</li>
+    <li><strong>Evidence and audit</strong> — Event metadata, clips (when stored), and audit logs support investigations and regulatory requirements.</li>
+    <li><strong>Scalability</strong> — Adding cameras scales with predictable per-camera costs; shared backend keeps unit cost down as you grow.</li>
+  </ul>
+  <p>ROI will vary by site size, incident frequency, and labour costs. We can provide a tailored ROI worksheet based on your sites and use case.</p>
+
+  <h2 id="security" class="page-break">9. Security and technology</h2>
+  <p>Security is built into the platform and into how we operate it. Production uses Clerk (or equivalent) for authentication; all sensitive API routes require a valid user and organisation. Every query is filtered by organisation ID so tenants cannot access another tenant’s data. Admin, supervisor, and viewer roles control what users can see and do. The API uses security headers (CSP, etc.), CORS is configured for your domains, and rate limiting is applied; secrets are stored in environment variables, not in code. The database is PostgreSQL with Prisma; optional encryption is available for sensitive config (e.g. MeshConnect keys). An audit log records actions, resource type, resource ID, user, IP, and changes for compliance. Raw video is not stored in the database—only metadata (path, duration, size, timestamps); clips live in object storage (e.g. S3). Access to clips is only via time-limited signed URLs after organisation ownership is verified. A more detailed security and data-processing annex can be provided on request (e.g. for GDPR or procurement).</p>
+  <p><strong>Tech stack:</strong> Frontend — Next.js 14, React, TypeScript, Tailwind CSS, ShadCN. Backend — Node.js, Express, tRPC, Prisma, PostgreSQL (optional pgvector). AI/ML — Claude (Anthropic), LangChain, ONNX Runtime, YOLO for detection. Auth — Clerk. Infrastructure — Docker, TurboRepo; CI/CD (e.g. Bitbucket Pipelines); optional Sentry.</p>
+  <p><strong>Data flow:</strong> Cameras and sensors feed an edge agent (e.g. Raspberry Pi) that runs YOLO-based detection, zone checks, and risk scoring, then sends event payloads and optional clip metadata over HTTPS to the central API. Video files are uploaded to object storage; the database stores only paths and metadata. Optional MeshConnect provides mesh networking between edge nodes with encrypted traffic (AES-256). The tRPC API serves the web app and integrations; playback uses short-lived signed URLs after ownership verification.</p>
+
+  <h2 id="status">10. Status and vision</h2>
+  <p><strong>Current status:</strong> Core platform and dashboard are operational; simulation mode is available for demonstrations; early pilots and limited live deployments are underway; access is expanding selectively via request-based onboarding.</p>
+  <p><strong>Vision:</strong> CANOPY. aims to become the <strong>risk intelligence layer for complex environments</strong>—enabling organisations to move from reactive safety management to proactive, evidence-based prevention.</p>
+
+  <hr style="margin:2rem 0;border:0;border-top:1px solid var(--rule);" />
+  <p class="muted">CANOPY. — Business Plan. Northern Edge Software, Darius, CANOPY. · United Kingdom. Prices and terms are indicative; final contract terms and pricing will be set in the engagement agreement.</p>
+
+</body>
+</html>

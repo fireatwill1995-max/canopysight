@@ -1,0 +1,36 @@
+# Deploy Canopy Sight Web (frontend) to Fly.io on push to main
+# Requires: FLY_API_TOKEN, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (optional) in GitHub repo secrets
+name: Deploy Web to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/ui/**"
+      - "packages/auth/**"
+      - "packages/validators/**"
+      - "packages/config/**"
+      - "fly.web.toml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: |
+          fly deploy --config fly.web.toml --dockerfile apps/web/Dockerfile --remote-only \
+            --build-arg NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -1,0 +1,9 @@
+version: "2"
+authtoken: 34Q0BSx0bpNaFBMa1HycbP7RRg5_4A5eg7HyhSDFNWjjVxTLB
+tunnels:
+  api:
+    addr: 3001
+    proto: http
+  web:
+    addr: 3000
+    proto: http
