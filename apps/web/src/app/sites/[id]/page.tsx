@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { DetailPageSkeleton, Skeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import dynamic from "next/dynamic";

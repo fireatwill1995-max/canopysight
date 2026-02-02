@@ -25,6 +25,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app (verify before deploy)
+        run: npm run build --workspace=@canopy-sight/web
+        env:
+          NEXT_PUBLIC_API_URL: https://canopy-sight-api.fly.dev
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+          NODE_ENV: production
+
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -35,9 +51,13 @@ jobs:
             echo "::error::FLY_API_TOKEN secret is not set. Add it in repo Settings → Secrets and variables → Actions."
             exit 1
           fi
+          CLERK_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
+          if [ -z "$CLERK_KEY" ]; then
+            CLERK_KEY="pk_test_placeholder"
+          fi
           flyctl deploy --config fly.web.toml --dockerfile apps/web/Dockerfile --remote-only \
             --build-arg NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev \
-            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}"
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$CLERK_KEY"
           echo "Deploy completed successfully (exit 0)"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
