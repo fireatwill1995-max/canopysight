@@ -27,6 +27,7 @@ ARG NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NODE_ENV=production
 
+# Build from repo root so workspace packages resolve
 WORKDIR /app/apps/web
 RUN npm run build
 
@@ -47,6 +48,6 @@ COPY --from=builder /app/apps/web/public ./public
 
 EXPOSE 3000
 # Fly sets PORT at runtime; Next respects process.env.PORT
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["node", "/app/server.js"]

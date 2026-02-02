@@ -50,8 +50,10 @@ jobs:
             echo "::error::FLY_API_TOKEN secret is not set. Add it in repo Settings → Secrets and variables → Actions."
             exit 1
           fi
+          # Build context = repo root so Dockerfile can COPY . . and resolve workspace packages
           flyctl deploy --config fly.web.toml --dockerfile apps/web/Dockerfile --remote-only \
             --build-arg NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev
           echo "Deploy completed successfully (exit 0)"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: .

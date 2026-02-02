@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@canopy-sight/api": "*",
     "@canopy-sight/auth": "*",
     "@canopy-sight/ui": "*",
     "@canopy-sight/validators": "*",
