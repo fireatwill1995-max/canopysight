@@ -2,7 +2,6 @@
 
 import { Button } from "@canopy-sight/ui";
 import { useRouter } from "next/navigation";
-import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -19,8 +18,6 @@ export default function SignInPage() {
     }
   };
 
-  const hasClerkKey = typeof process !== "undefined" && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-8 p-8">
@@ -31,36 +28,21 @@ export default function SignInPage() {
           <p className="mt-2 text-sm text-muted-foreground">Full coverage. Everywhere.</p>
         </div>
 
-        {hasClerkKey ? (
-          <div className="flex justify-center">
-            <SignIn
-              routing="path"
-              path="/sign-in"
-              signUpUrl="/sign-up"
-              fallbackRedirectUrl="/dashboard"
-              forceRedirectUrl="/dashboard"
-            />
-          </div>
-        ) : null}
-
         <div className="glass-strong rounded-xl border border-border p-6">
           <div className="text-center">
             <h3 className="text-sm font-semibold text-foreground mb-2">
-              🧪 Demo Login
+              Demo Login
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Sign in as a full-access demo admin (no Clerk required).
+              Sign in as a full-access demo admin. No email or password required.
             </p>
             <Button
               onClick={handleDemoLogin}
-              variant="outline"
+              variant="default"
               className="w-full min-h-[44px] touch-manipulation"
             >
               Continue as Demo Admin
             </Button>
-            <p className="mt-2 text-xs text-muted-foreground">
-              No email or password required.
-            </p>
           </div>
         </div>
       </div>

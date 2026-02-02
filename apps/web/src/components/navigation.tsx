@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@canopy-sight/ui";
-import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { isDemoMode, getDemoUser, clearDemoMode } from "@/lib/demo-auth";
 import { useEffect, useState } from "react";
+
 const THEME_STORAGE_KEY = "canopy_theme";
 
 // Mobile menu icons using inline SVG
@@ -44,6 +44,46 @@ export function Navigation() {
     clearDemoMode();
     router.push("/sign-in");
   };
+
+  const renderAuthUI = () =>
+    demoMode && demoUser ? (
+      <div className="hidden sm:flex items-center gap-2">
+        <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-xs sm:text-sm font-medium border border-yellow-200 shadow-sm">
+          <span className="text-base sm:text-lg">🧪</span>
+          <span className="hidden md:inline">Demo: {demoUser.firstName} {demoUser.lastName}</span>
+          <span className="md:hidden">Demo</span>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleDemoSignOut} className="shrink-0">
+          Sign out
+        </Button>
+      </div>
+    ) : (
+      <div className="hidden sm:flex items-center gap-2">
+        <span className="px-3 sm:px-4 py-2 rounded-lg bg-muted text-foreground text-xs sm:text-sm font-medium border border-border">
+          <span className="hidden md:inline">Guest</span>
+        </span>
+        <Button variant="default" size="sm" asChild className="shrink-0">
+          <Link href="/sign-in">Sign in</Link>
+        </Button>
+      </div>
+    );
+
+  const renderAuthUIMobile = () =>
+    demoMode && demoUser ? (
+      <>
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-sm font-medium border border-yellow-200">
+          <span className="text-lg">🧪</span>
+          <span>Demo: {demoUser.firstName} {demoUser.lastName}</span>
+        </div>
+        <Button variant="outline" className="w-full" onClick={handleDemoSignOut}>
+          Sign out
+        </Button>
+      </>
+    ) : (
+      <Button variant="default" className="w-full" asChild>
+        <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
+      </Button>
+    );
 
   useEffect(() => {
     // Check demo mode on mount and when pathname changes
@@ -127,32 +167,7 @@ export function Navigation() {
             >
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
-            <SignedIn>
-              <UserButton afterSignOutUrl="/sign-in" />
-            </SignedIn>
-            <SignedOut>
-              {demoMode && demoUser ? (
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-xs sm:text-sm font-medium border border-yellow-200 shadow-sm">
-                    <span className="text-base sm:text-lg">🧪</span>
-                    <span className="hidden md:inline">Demo: {demoUser.firstName} {demoUser.lastName}</span>
-                    <span className="md:hidden">Demo</span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={handleDemoSignOut} className="shrink-0">
-                    Sign out
-                  </Button>
-                </div>
-              ) : (
-                <div className="hidden sm:flex items-center gap-2">
-                  <span className="px-3 sm:px-4 py-2 rounded-lg bg-muted text-foreground text-xs sm:text-sm font-medium border border-border">
-                    <span className="hidden md:inline">Guest</span>
-                  </span>
-                  <Button variant="default" size="sm" asChild className="shrink-0">
-                    <Link href="/sign-in">Sign in</Link>
-                  </Button>
-                </div>
-              )}
-            </SignedOut>
+            {renderAuthUI()}
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -189,29 +204,7 @@ export function Navigation() {
                 <span>Theme</span>
                 <span>{theme === "dark" ? "☀️ Light" : "🌙 Dark"}</span>
               </button>
-              <SignedIn>
-                <div className="px-4 py-3 flex items-center gap-2 rounded-lg bg-muted text-foreground text-sm font-medium border border-border">
-                  <UserButton afterSignOutUrl="/sign-in" />
-                  <span>Account</span>
-                </div>
-              </SignedIn>
-              <SignedOut>
-                {demoMode && demoUser ? (
-                  <>
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 text-sm font-medium border border-yellow-200">
-                      <span className="text-lg">🧪</span>
-                      <span>Demo: {demoUser.firstName} {demoUser.lastName}</span>
-                    </div>
-                    <Button variant="outline" className="w-full" onClick={handleDemoSignOut}>
-                      Sign out
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="default" className="w-full" asChild>
-                    <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
-                  </Button>
-                )}
-              </SignedOut>
+              {renderAuthUIMobile()}
             </div>
           </div>
         )}

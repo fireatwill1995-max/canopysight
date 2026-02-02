@@ -24,9 +24,7 @@ COPY . .
 
 # Build-time env for NEXT_PUBLIC_* (baked into client bundle)
 ARG NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV NODE_ENV=production
 
 WORKDIR /app/apps/web

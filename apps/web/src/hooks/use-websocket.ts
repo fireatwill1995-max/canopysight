@@ -117,7 +117,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       if (isDemoMode()) {
         socket.emit("authenticate", { demoMode: true });
       } else {
-        // In production, get token from Clerk
+        // When re-adding auth, send real token here
         socket.emit("authenticate", { token: "placeholder" });
       }
     });

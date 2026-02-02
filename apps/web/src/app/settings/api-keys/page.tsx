@@ -49,7 +49,7 @@ export default function ApiKeysSettingsPage() {
             <div className="font-semibold mb-1">Authentication & Demo Mode</div>
             <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside space-y-1">
               <li>Demo login and access level</li>
-              <li>Clerk keys (if re-enabled in future)</li>
+              <li>Demo login (auth can be re-added later)</li>
             </ul>
           </div>
           <div className="p-4 rounded-lg border bg-white/80 dark:bg-gray-900/60 text-gray-900 dark:text-gray-100">

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import dynamic from "next/dynamic";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "./providers";
 import { Navigation } from "@/components/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -56,10 +55,33 @@ export const viewport = {
   maximumScale: 5,
 };
 
-// Use placeholder so build/prerender succeed when key is missing; app still works with Demo Login
-const clerkPublishableKey =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() ||
-  "pk_test_placeholder";
+function AppContent({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {/* CANOPY. mountain watermark – same as canopyinc.co, behind all content */}
+      <div className="canopy-watermark" aria-hidden="true" />
+      {/* CANOPY text watermark – moves slowly across the screen */}
+      <div className="canopy-text-watermark" aria-hidden="true">
+        <div className="canopy-text-watermark-track">
+          <span className="canopy-text-watermark-text">CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY </span>
+          <span className="canopy-text-watermark-text" aria-hidden="true">CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY </span>
+        </div>
+      </div>
+      <div className="relative z-10 min-h-screen flex flex-col">
+        <ErrorBoundary fallback={ErrorFallback}>
+          <Providers>
+            <DemoBanner />
+            <SimulationBanner />
+            <Navigation />
+            <ServerStatus />
+            {children}
+            <ConnectionStatus />
+          </Providers>
+        </ErrorBoundary>
+      </div>
+    </>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -69,36 +91,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className={`${inter.className} font-sans antialiased relative`}>
-        <ClerkProvider
-          publishableKey={clerkPublishableKey}
-          signInUrl="/sign-in"
-          signUpUrl="/sign-up"
-          signInFallbackRedirectUrl="/dashboard"
-          signUpFallbackRedirectUrl="/dashboard"
-          afterSignOutUrl="/sign-in"
-        >
-          {/* CANOPY. mountain watermark – same as canopyinc.co, behind all content */}
-          <div className="canopy-watermark" aria-hidden="true" />
-          {/* CANOPY text watermark – moves slowly across the screen */}
-          <div className="canopy-text-watermark" aria-hidden="true">
-            <div className="canopy-text-watermark-track">
-              <span className="canopy-text-watermark-text">CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY </span>
-              <span className="canopy-text-watermark-text" aria-hidden="true">CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY CANOPY </span>
-            </div>
-          </div>
-          <div className="relative z-10 min-h-screen flex flex-col">
-            <ErrorBoundary fallback={ErrorFallback}>
-              <Providers>
-                <DemoBanner />
-                <SimulationBanner />
-                <Navigation />
-                <ServerStatus />
-                {children}
-                <ConnectionStatus />
-              </Providers>
-            </ErrorBoundary>
-          </div>
-        </ClerkProvider>
+        <AppContent>{children}</AppContent>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import type { RouterOutputs } from "@canopy-sight/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Skeleton } from "@canopy-sight/ui";
 import { useWebSocket } from "@/hooks/use-websocket";
@@ -13,6 +14,9 @@ interface DeviceStatus {
   status: string;
   lastHeartbeat?: Date | string;
 }
+
+type DeviceListOutput = RouterOutputs["device"]["list"];
+type DeviceListItem = DeviceListOutput[number];
 
 export function DeviceStatusPanel() {
   const [deviceStatuses, setDeviceStatuses] = useState<Map<string, DeviceStatus>>(new Map());
@@ -29,18 +33,20 @@ export function DeviceStatusPanel() {
   });
 
   useEffect(() => {
-    if (devices) {
-      const statusMap = new Map<string, DeviceStatus>();
-      devices.forEach((device) => {
-        statusMap.set(device.id, {
-          id: device.id,
-          name: device.name,
-          status: device.status,
-          lastHeartbeat: device.lastHeartbeat ?? undefined,
-        });
+    if (!devices || !Array.isArray(devices)) return;
+    const statusMap = new Map<string, DeviceStatus>();
+    const list: DeviceListItem[] = devices;
+    for (let i = 0; i < list.length; i++) {
+      const device: DeviceListItem = list[i];
+      const lastHb = device.lastHeartbeat;
+      statusMap.set(device.id, {
+        id: device.id,
+        name: device.name ?? undefined,
+        status: device.status,
+        lastHeartbeat: lastHb != null ? (typeof lastHb === "string" ? lastHb : (lastHb as Date).toISOString()) : undefined,
       });
-      setDeviceStatuses(statusMap);
     }
+    setDeviceStatuses(statusMap);
   }, [devices]);
 
   const getStatusColor = (status: string) => {
