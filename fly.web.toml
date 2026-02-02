@@ -10,9 +10,7 @@ primary_region = 'syd'
   dockerfile = 'apps/web/Dockerfile'
   [build.args]
     # NEXT_PUBLIC_* must be present at build time (Next inlines into client bundle).
-    # GitHub Actions passes these via --build-arg; local deploy can override with fly deploy --build-arg ...
     NEXT_PUBLIC_API_URL = "https://canopy-sight-api.fly.dev"
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_placeholder"
 
 [env]
   NODE_ENV = 'production'
