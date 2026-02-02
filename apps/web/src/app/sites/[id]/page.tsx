@@ -507,12 +507,12 @@ export default function SiteDetailPage() {
 
       {activeTab === "zones" && (
         <div className="space-y-6">
-          {/* Mirrored live stream — same as main camera so you can draw zones accurately */}
+          {/* Single card: live feed with zone editor drawn directly on it — see exactly where you put the zone */}
           <Card>
             <CardHeader>
-              <CardTitle>Live stream (main camera)</CardTitle>
+              <CardTitle>Live feed — draw zones directly on the stream</CardTitle>
               <CardDescription>
-                Same feed as the Live tab — use it to draw zones accurately below.
+                The video below is the live feed. Click on it to add zone points (min 3) so you can see exactly where the zone is. Choose camera, then draw and save.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -533,63 +533,38 @@ export default function SiteDetailPage() {
                 </div>
               )}
               {focusedDevice || simulationOn ? (
-                <LiveVideoFeed
-                  deviceId={focusedDevice?.id ?? "zone-cam"}
-                  siteId={siteId}
-                  streamUrl={(focusedDevice as { streamUrl?: string })?.streamUrl}
+                <ZoneEditor
+                  streamUrl={
+                    ((focusedDevice ?? devices?.[0]) as { streamUrl?: string })?.streamUrl?.trim()
+                      ? ((focusedDevice ?? devices?.[0]) as { streamUrl?: string }).streamUrl
+                      : simulationOn
+                        ? `https://www.youtube.com/watch?v=${DEMO_VIDEO_YOUTUBE_ID}`
+                        : undefined
+                  }
                   simulationMode={simulationOn}
-                  showZones={false}
-                  hazards={[]}
-                  zones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
+                  refWidth={HAZARD_REF_WIDTH}
+                  refHeight={HAZARD_REF_HEIGHT}
+                  existingZones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
                     id: z.id,
                     name: z.name,
                     points: (z.points as Array<{ x: number; y: number }>) || [],
                     type: z.type,
                   }))}
+                  onSave={handleSaveZone}
                 />
               ) : (
-                <div className="aspect-video max-h-[50vh] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400">
-                  <p>Enable simulation mode above or add a device with a stream URL to see the live feed here.</p>
+                <div className="aspect-video max-h-[50vh] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400 p-4 text-center">
+                  <p>Enable simulation mode above or add a device with a stream URL to see the live feed and draw zones on it.</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>🎯 Draw zones on stream</CardTitle>
-              <CardDescription>
-                Draw a detection zone on the same stream above. Stream is fully zoomed out. Click to add points (min 3), then Save Zone.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ZoneEditor
-                streamUrl={
-                  ((focusedDevice ?? devices?.[0]) as { streamUrl?: string })?.streamUrl?.trim()
-                    ? ((focusedDevice ?? devices?.[0]) as { streamUrl?: string }).streamUrl
-                    : simulationOn
-                      ? `https://www.youtube.com/watch?v=${DEMO_VIDEO_YOUTUBE_ID}`
-                      : undefined
-                }
-                simulationMode={simulationOn}
-                refWidth={HAZARD_REF_WIDTH}
-                refHeight={HAZARD_REF_HEIGHT}
-                existingZones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
-                  id: z.id,
-                  name: z.name,
-                  points: (z.points as Array<{ x: number; y: number }>) || [],
-                  type: z.type,
-                }))}
-                onSave={handleSaveZone}
-              />
             </CardContent>
           </Card>
 
           {zones && zones.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>📋 Existing Zones</CardTitle>
-                <CardDescription>{zones.length} zone{zones.length !== 1 ? "s" : ""} configured — delete any zone you no longer need.</CardDescription>
+                <CardTitle>Existing zones</CardTitle>
+                <CardDescription>{zones.length} zone{zones.length !== 1 ? "s" : ""} configured. Remove any zone with the Delete zone button.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -602,18 +577,19 @@ export default function SiteDetailPage() {
                           Points: {(zone.points as Array<{ x: number; y: number }>)?.length || 0}
                         </p>
                       </div>
-                      <button
+                      <Button
                         type="button"
+                        variant="destructive"
+                        size="sm"
                         onClick={() => {
                           if (window.confirm(`Delete zone "${zone.name}"?`)) {
                             deleteZoneMutation.mutate({ id: zone.id });
                           }
                         }}
                         disabled={deleteZoneMutation.isPending}
-                        className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 disabled:opacity-50"
                       >
-                        {deleteZoneMutation.isPending ? "Deleting…" : "Delete"}
-                      </button>
+                        {deleteZoneMutation.isPending ? "Deleting…" : "Delete zone"}
+                      </Button>
                     </div>
                   ))}
                 </div>
