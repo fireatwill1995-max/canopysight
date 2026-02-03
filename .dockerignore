@@ -1,37 +1,27 @@
-# Git and IDE
-.git
-.github
-.cursor
-.vscode
-*.md
-!apps/api/README*
-
-# Dependencies (reinstalled in image)
+# Dependency/Build Directories
 node_modules
-**/node_modules
+npm-debug.log
+.npm
 
-# Build outputs
-.next
+# Project Files
+.git
+.gitignore
+.dockerignore
+Dockerfile
+fly.toml # Fly.io configuration file
+
+# Environment/Configuration Files
+.env
+.DS_Store
+*.log
+
+# Development/Testing files and directories (adjust as needed)
+test
+tests
+docs
+coverage
+tmp
+*~
+# Any files generated during development or testing, e.g.:
 dist
 build
-.turbo
-*.tsbuildinfo
-
-# Env and secrets (set via Fly secrets)
-.env
-.env.*
-!.env.example
-
-# Logs and temp
-*.log
-tmp
-temp
-.DS_Store
-
-# Test and misc
-coverage
-.nyc_output
-*.test.ts
-*.spec.ts
-__tests__
-mcps
