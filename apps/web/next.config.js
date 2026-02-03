@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
+const path = require("path");
 // When using ngrok, set NGROK_URL in .env.local (e.g. https://xxx.ngrok-free.dev) so chunk URLs resolve correctly
 const ngrokUrl = process.env.NGROK_URL?.replace(/\/$/, "");
 const nextConfig = {
-  output: "standalone", // for Fly/Docker: self-contained server (run with node apps/web/server.js)
-  // Monorepo: workspace packages are traced when building from apps/web with turbo
+  output: "standalone", // for Fly/Docker: self-contained server
   reactStrictMode: true,
   transpilePackages: ["@canopy-sight/ui"],
   // In dev via ngrok: set NGROK_URL in .env.local (e.g. https://xxx.ngrok-free.dev) so chunk URLs resolve (avoids ChunkLoadError /_next/undefined)
@@ -24,6 +24,7 @@ const nextConfig = {
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["@canopy-sight/ui", "@tanstack/react-query"],
+    outputFileTracingRoot: path.join(__dirname, "../.."),
   },
   // Proxy API requests to local API server
   // Note: API routes in /app/api-proxy take precedence over rewrites
