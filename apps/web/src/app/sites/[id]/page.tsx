@@ -6,7 +6,7 @@ import { DetailPageSkeleton, Skeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   isSimulationMode,
@@ -45,16 +45,20 @@ interface ZoneEntry {
   type: string;
   points: unknown;
   isActive: boolean;
+  cameraId?: string | null;
 }
 
 export default function SiteDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const siteId = params.id as string;
   const [activeTab, setActiveTab] = useState<"overview" | "live" | "zones" | "mesh">("overview");
   const [focusedDeviceId, setFocusedDeviceId] = useState<string | null>(null);
   const [simulationOn, setSimulationOn] = useState(false);
   const [hazardTimeSeed, setHazardTimeSeed] = useState(0);
+  const [editingZone, setEditingZone] = useState<ZoneEntry | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", type: "exclusion" as string, cameraId: "" as string, isActive: true });
 
   // Sync simulation state from sessionStorage and from URL (?simulation=1 & ?tab=live)
   useEffect(() => {
@@ -71,12 +75,21 @@ export default function SiteDetailPage() {
   useEffect(() => {
     const tab = searchParams.get("tab");
     const sim = searchParams.get("simulation");
-    if (tab === "live") setActiveTab("live");
+    if (tab === "overview" || tab === "live" || tab === "zones" || tab === "mesh") {
+      setActiveTab(tab);
+    }
     if (sim === "1" || sim === "true") {
       setSimulationMode(true);
       setSimulationOn(true);
     }
   }, [searchParams]);
+
+  const setTab = (tab: "overview" | "live" | "zones" | "mesh") => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    router.replace(url.pathname + url.search);
+  };
 
   const { data: site, isLoading, error } = trpc.site.byId.useQuery({ id: siteId });
   const { data: zones } = trpc.zone.list.useQuery({ siteId });
@@ -118,8 +131,10 @@ export default function SiteDetailPage() {
       : detections.filter((d) => d.device?.id === deviceId).map(toHazard);
 
   const { addToast } = useToast();
+  const utils = trpc.useUtils();
   const createZoneMutation = trpc.zone.create.useMutation({
     onSuccess: () => {
+      utils.zone.list.invalidate({ siteId });
       addToast({
         type: "success",
         title: "Zone created",
@@ -135,7 +150,25 @@ export default function SiteDetailPage() {
     },
   });
 
-  const utils = trpc.useUtils();
+  const updateZoneMutation = trpc.zone.update.useMutation({
+    onSuccess: () => {
+      utils.zone.list.invalidate({ siteId });
+      setEditingZone(null);
+      addToast({
+        type: "success",
+        title: "Zone updated",
+        description: "The detection zone has been updated",
+      });
+    },
+    onError: (error) => {
+      addToast({
+        type: "error",
+        title: "Failed to update zone",
+        description: error.message || "An error occurred",
+      });
+    },
+  });
+
   const deleteZoneMutation = trpc.zone.delete.useMutation({
     onSuccess: () => {
       utils.zone.list.invalidate({ siteId });
@@ -155,12 +188,35 @@ export default function SiteDetailPage() {
   });
 
   const handleSaveZone = async (zone: { name: string; points: Array<{ x: number; y: number }>; type: string }) => {
+    const effectiveCameraId = focusedDeviceId ?? (focusedDevice as { id: string } | undefined)?.id;
     createZoneMutation.mutate({
       siteId,
       name: zone.name,
-      type: zone.type as any,
+      type: zone.type as "crossing" | "approach" | "exclusion" | "custom",
       points: zone.points,
       isActive: true,
+      cameraId: effectiveCameraId ?? undefined,
+    });
+  };
+
+  const openEditZone = (zone: ZoneEntry) => {
+    setEditingZone(zone);
+    setEditForm({
+      name: zone.name,
+      type: zone.type,
+      cameraId: zone.cameraId ?? "",
+      isActive: zone.isActive,
+    });
+  };
+
+  const handleSaveEditZone = () => {
+    if (!editingZone) return;
+    updateZoneMutation.mutate({
+      id: editingZone.id,
+      name: editForm.name,
+      type: editForm.type as "crossing" | "approach" | "exclusion" | "custom",
+      cameraId: editForm.cameraId || undefined,
+      isActive: editForm.isActive,
     });
   };
 
@@ -220,7 +276,7 @@ export default function SiteDetailPage() {
       <div className="mb-4 border-b overflow-x-auto">
         <div className="flex gap-2 sm:gap-4 min-w-max">
           <button
-            onClick={() => setActiveTab("overview")}
+            onClick={() => setTab("overview")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "overview"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -230,7 +286,7 @@ export default function SiteDetailPage() {
             Overview
           </button>
           <button
-            onClick={() => setActiveTab("live")}
+            onClick={() => setTab("live")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "live"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -240,7 +296,7 @@ export default function SiteDetailPage() {
             Live Feed
           </button>
           <button
-            onClick={() => setActiveTab("zones")}
+            onClick={() => setTab("zones")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "zones"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -250,7 +306,7 @@ export default function SiteDetailPage() {
             Zones
           </button>
           <button
-            onClick={() => setActiveTab("mesh")}
+            onClick={() => setTab("mesh")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "mesh"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -564,37 +620,135 @@ export default function SiteDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Existing zones</CardTitle>
-                <CardDescription>{zones.length} zone{zones.length !== 1 ? "s" : ""} configured. Remove any zone with the Delete zone button.</CardDescription>
+                <CardDescription>
+                  {zones.length} zone{zones.length !== 1 ? "s" : ""} configured. Zones are linked to the selected camera. Edit or delete below.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {(zones as ZoneEntry[]).map((zone) => (
-                    <div key={zone.id} className="p-4 border rounded flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-semibold">{zone.name}</h3>
-                        <p className="text-sm text-gray-600">Type: {zone.type}</p>
-                        <p className="text-sm text-gray-500">
-                          Points: {(zone.points as Array<{ x: number; y: number }>)?.length || 0}
-                        </p>
+                  {(zones as ZoneEntry[]).map((zone) => {
+                    const cameraName = zone.cameraId && devices?.length
+                      ? (devices as { id: string; name: string }[]).find((d) => d.id === zone.cameraId)?.name ?? "—"
+                      : "—";
+                    return (
+                      <div key={zone.id} className="p-4 border rounded flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <h3 className="font-semibold">{zone.name}</h3>
+                          <p className="text-sm text-gray-600">Type: {zone.type}</p>
+                          <p className="text-sm text-gray-500">
+                            Camera: {cameraName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Points: {(zone.points as Array<{ x: number; y: number }>)?.length || 0}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditZone(zone)}
+                            disabled={!!editingZone}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              if (window.confirm(`Delete zone "${zone.name}"?`)) {
+                                deleteZoneMutation.mutate({ id: zone.id });
+                              }
+                            }}
+                            disabled={deleteZoneMutation.isPending}
+                          >
+                            {deleteZoneMutation.isPending ? "Deleting…" : "Delete"}
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          if (window.confirm(`Delete zone "${zone.name}"?`)) {
-                            deleteZoneMutation.mutate({ id: zone.id });
-                          }
-                        }}
-                        disabled={deleteZoneMutation.isPending}
-                      >
-                        {deleteZoneMutation.isPending ? "Deleting…" : "Delete zone"}
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {editingZone && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" aria-modal="true">
+              <Card className="mx-4 w-full max-w-md">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Edit zone</CardTitle>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingZone(null)}
+                    aria-label="Close"
+                  >
+                    ×
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Type</label>
+                    <select
+                      value={editForm.type}
+                      onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="exclusion">Exclusion Zone</option>
+                      <option value="approach">Approach Zone</option>
+                      <option value="crossing">Crossing Zone</option>
+                      <option value="custom">Custom Zone</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Camera</label>
+                    <select
+                      value={editForm.cameraId}
+                      onChange={(e) => setEditForm((f) => ({ ...f, cameraId: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">— No camera —</option>
+                      {(devices ?? []).map((d: { id: string; name: string }) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isActive}
+                      onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm font-medium">Active</span>
+                  </label>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <Button type="button" variant="outline" onClick={() => setEditingZone(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleSaveEditZone}
+                      disabled={updateZoneMutation.isPending || !editForm.name.trim()}
+                    >
+                      {updateZoneMutation.isPending ? "Saving…" : "Save"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       )}
