@@ -8,6 +8,19 @@ interface MeshTopologyViewProps {
   siteId: string;
 }
 
+interface TopologyNode {
+  nodeId: string;
+  deviceId: string;
+  deviceName: string;
+  status: string;
+  ipAddress?: string | null;
+  signalStrength?: number;
+  latency?: number;
+  throughput?: number;
+  isGateway: boolean;
+  neighborNodes: string[];
+}
+
 export function MeshTopologyView({ siteId }: MeshTopologyViewProps) {
   const { data: topology, isLoading, error } = trpc.meshconnect.getTopology.useQuery(
     { siteId },
@@ -53,7 +66,7 @@ export function MeshTopologyView({ siteId }: MeshTopologyViewProps) {
         <div className="space-y-4">
           {/* Simple node list view - could be enhanced with a graph visualization library */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {topology.nodes.map((node: { nodeId: string; deviceName?: string; status?: string }) => (
+            {topology.nodes.map((node: TopologyNode) => (
               <div
                 key={node.nodeId}
                 className={`p-4 border-2 rounded-lg ${
@@ -114,7 +127,7 @@ export function MeshTopologyView({ siteId }: MeshTopologyViewProps) {
                       </span>
                     </div>
                   )}
-                  {node.neighborNodes.length > 0 && (
+                  {node.neighborNodes && node.neighborNodes.length > 0 && (
                     <div className="mt-2 pt-2 border-t">
                       <div className="text-gray-600 text-xs mb-1">Neighbors:</div>
                       <div className="flex flex-wrap gap-1">
@@ -139,7 +152,7 @@ export function MeshTopologyView({ siteId }: MeshTopologyViewProps) {
             <div className="mt-6">
               <h4 className="font-medium mb-3">Network Connections</h4>
               <div className="space-y-2">
-                {topology.edges.map((edge, idx) => (
+                {topology.edges.map((edge: { from: string; to: string; signalStrength?: number; latency?: number }, idx: number) => (
                   <div
                     key={idx}
                     className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm text-gray-900 dark:text-gray-100"
