@@ -53,7 +53,7 @@ export function MeshTopologyView({ siteId }: MeshTopologyViewProps) {
         <div className="space-y-4">
           {/* Simple node list view - could be enhanced with a graph visualization library */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {topology.nodes.map((node) => (
+            {topology.nodes.map((node: { nodeId: string; deviceName?: string; status?: string }) => (
               <div
                 key={node.nodeId}
                 className={`p-4 border-2 rounded-lg ${

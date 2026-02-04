@@ -8,20 +8,39 @@ npm-debug.log
 .gitignore
 .dockerignore
 Dockerfile
-fly.toml # Fly.io configuration file
+fly.toml
+fly.*.toml
 
 # Environment/Configuration Files
 .env
+.env.*
 .DS_Store
 *.log
 
-# Development/Testing files and directories (adjust as needed)
+# Development/Testing files and directories
 test
 tests
 docs
 coverage
 tmp
 *~
-# Any files generated during development or testing, e.g.:
 dist
 build
+
+# Python / training (not needed for web build)
+.venv-train
+.venv
+*.pyc
+__pycache__
+runs
+datasets
+scripts/*.py
+*.pt
+*.onnx
+requirements*.txt
+
+# IDE / misc
+.cursor
+*.md
+!apps/web/**/*.md
+!packages/**/*.md
