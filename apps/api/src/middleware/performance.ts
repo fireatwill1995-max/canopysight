@@ -14,15 +14,14 @@ export interface PerformanceMetrics {
 const SLOW_QUERY_THRESHOLD_MS = 1000; // 1 second
 const VERY_SLOW_QUERY_THRESHOLD_MS = 5000; // 5 seconds
 
-type TRPCMiddleware = (opts: {
-  ctx: { organizationId?: string; userId?: string };
-  path: string;
-  type: string;
-  next: () => Promise<unknown>;
-}) => Promise<unknown>;
-
-export function performanceMiddleware(): TRPCMiddleware {
-  return async (opts) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC middleware generics are too complex to type standalone
+export function performanceMiddleware(): any {
+  return async (opts: {
+    ctx: { organizationId?: string; userId?: string };
+    path: string;
+    type: string;
+    next: () => Promise<unknown>;
+  }) => {
     const startTime = Date.now();
     const procedure = `${opts.type}.${opts.path}`;
 

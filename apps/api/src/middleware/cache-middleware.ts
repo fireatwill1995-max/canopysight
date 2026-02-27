@@ -1,15 +1,8 @@
 import { getCache, cacheKeys } from "../services/cache";
 import { logger } from "@canopy-sight/config";
 
-type TRPCMiddleware = (opts: {
-  ctx: { organizationId?: string };
-  path: string;
-  type: string;
-  input: unknown;
-  next: () => Promise<unknown>;
-}) => Promise<unknown>;
-
-export function cacheMiddleware(ttlSeconds: number = 300): TRPCMiddleware {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC middleware generics are too complex to type standalone
+export function cacheMiddleware(ttlSeconds: number = 300): any {
   return async (opts: {
     ctx: { organizationId?: string };
     path: string;
