@@ -16,6 +16,7 @@ COPY packages/config/package.json packages/config/
 COPY packages/ui/package.json packages/ui/
 COPY packages/ai/package.json packages/ai/
 COPY services/alert-engine/package.json services/alert-engine/
+COPY services/video-processor/package.json services/video-processor/
 
 RUN npm ci
 
