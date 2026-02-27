@@ -93,7 +93,10 @@ export const zoneRouter = router({
       if (error instanceof TRPCError) {
         throw error;
       }
-      console.error("Error creating zone:", error);
+      logger.error("Error creating zone", error, {
+        organizationId: ctx.organizationId,
+        siteId: input.siteId,
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to create zone",

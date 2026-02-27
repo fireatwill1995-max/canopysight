@@ -30,7 +30,7 @@ function streamErrorMessage(
   return `${base} ${shortUrl}${code}. Check CORS and that the URL is a direct video or HLS (.m3u8) link.`;
 }
 
-/** A detected potential hazard to circle on the live feed (from detection events or simulation). */
+/** A detected person or object to highlight on the live feed (from detection events or simulation). */
 export interface HazardOverlay {
   id: string;
   type: string;
@@ -52,7 +52,7 @@ interface LiveVideoFeedProps {
     points: Array<{ x: number; y: number }>;
     type: string;
   }>;
-  /** Detected hazards to circle on the feed (boundingBox in hazardRefWidth x hazardRefHeight space). */
+  /** Detected persons/objects to highlight with a green box on the feed (boundingBox in hazardRefWidth x hazardRefHeight space). */
   hazards?: HazardOverlay[];
   /** Reference resolution for hazard boundingBox coordinates (default 1920x1080). */
   hazardRefWidth?: number;
@@ -119,10 +119,11 @@ export function LiveVideoFeed({
       const isHls = effectiveStreamUrl.endsWith(".m3u8");
 
       if (isHls) {
-        // HLS: use hls.js in Chrome/Firefox; native in Safari
+        let aborted = false;
         const loadHls = async () => {
           try {
             const Hls = (await import("hls.js")).default;
+            if (aborted) return;
             if (Hls.isSupported()) {
               hlsInstance = new Hls({
                 enableWorker: true,
@@ -141,7 +142,6 @@ export function LiveVideoFeed({
             } else if (
               video.canPlayType("application/vnd.apple.mpegurl") !== ""
             ) {
-              // Safari native HLS
               video.src = effectiveStreamUrl;
             } else {
               setError(
@@ -149,13 +149,31 @@ export function LiveVideoFeed({
               );
             }
           } catch (e) {
-            setError(
-              streamErrorMessage(effectiveStreamUrl, null) +
-                " HLS failed to load."
-            );
+            if (!aborted) {
+              setError(
+                streamErrorMessage(effectiveStreamUrl, null) +
+                  " HLS failed to load."
+              );
+            }
           }
         };
         loadHls();
+        const originalCleanup = () => { aborted = true; };
+        const baseReturn = () => {
+          originalCleanup();
+          video.removeEventListener("play", onPlay);
+          video.removeEventListener("pause", onPause);
+          video.removeEventListener("error", onVideoError);
+          if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
+          }
+          video.src = "";
+        };
+        video.addEventListener("play", onPlay);
+        video.addEventListener("pause", onPause);
+        video.addEventListener("error", onVideoError);
+        return baseReturn;
       } else {
         video.src = effectiveStreamUrl;
       }
@@ -179,96 +197,8 @@ export function LiveVideoFeed({
     };
   }, [effectiveStreamUrl, simulationMode, useYoutube]);
 
-  // Draw hazard circle color by risk/type
-  const getHazardColor = (h: HazardOverlay): string => {
-    const risk = h.riskScore ?? (h.confidence ? h.confidence * 50 : 30);
-    if (risk >= 40) return "rgba(239, 68, 68, 0.9)"; // red – high risk
-    if (risk >= 25) return "rgba(245, 158, 11, 0.9)"; // orange – medium
-    return "rgba(234, 179, 8, 0.85)"; // yellow – potential hazard
-  };
-
-  /** Helper: draw rounded rect (use native roundRect if available). */
-  const roundRect = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number
-  ) => {
-    if (typeof (ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect === "function") {
-      ctx.beginPath();
-      (ctx as CanvasRenderingContext2D & { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(x, y, w, h, r);
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-    }
-  };
-
-  /** Draw a simple icon for the hazard type (person, vehicle, or alert) above center. */
-  const drawHazardIcon = (
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    type: string,
-    iconSize: number,
-    color: string
-  ) => {
-    const top = cy - iconSize * 1.4;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2;
-
-    const t = type.toLowerCase();
-    if (t === "person") {
-      // Head (circle) + body (rounded rect)
-      ctx.beginPath();
-      ctx.arc(cx, top + iconSize * 0.35, iconSize * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      roundRect(ctx, cx - (iconSize * 0.5) / 2, top + iconSize * 0.5, iconSize * 0.5, iconSize * 0.65, 2);
-      ctx.fill();
-      ctx.stroke();
-    } else if (t === "vehicle" || t === "car") {
-      // Car body (wide rounded rect) + cabin
-      const w = iconSize * 1.1;
-      const h = iconSize * 0.5;
-      roundRect(ctx, cx - w / 2, top + iconSize * 0.2, w, h, 3);
-      ctx.fill();
-      ctx.stroke();
-      roundRect(ctx, cx - w * 0.25, top + iconSize * 0.05, w * 0.5, h * 0.6, 2);
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      // Generic alert: triangle with exclamation
-      const r = iconSize * 0.45;
-      ctx.beginPath();
-      ctx.moveTo(cx, top);
-      ctx.lineTo(cx + r, top + r * 1.6);
-      ctx.lineTo(cx - r, top + r * 1.6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "white";
-      ctx.font = `bold ${Math.max(8, iconSize * 0.5)}px Arial`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("!", cx, top + r * 0.9);
-    }
-    ctx.textBaseline = "alphabetic";
-  };
-
-  const drawHazardCircles = (
+  /** Draw detections as a thin green box with subtle highlight (no red circle). */
+  const drawHazardBoxes = (
     ctx: CanvasRenderingContext2D,
     canvasW: number,
     canvasH: number,
@@ -278,60 +208,35 @@ export function LiveVideoFeed({
     if (hazards.length === 0) return;
     const scaleX = canvasW / refW;
     const scaleY = canvasH / refH;
-    hazards.forEach((h) => {
-      const b = h.boundingBox;
-      const cx = (b.x + b.width / 2) * scaleX;
-      const cy = (b.y + b.height / 2) * scaleY;
-      const radius = Math.max(b.width * scaleX, b.height * scaleY) / 2 + 8;
-      const color = getHazardColor(h);
-      const iconSize = Math.min(24, radius * 0.8);
+    const BOX_STROKE = 2;
+    const HIGHLIGHT_FILL = "rgba(34, 197, 94, 0.08)"; // subtle green tint
+    const BOX_STROKE_COLOR = "rgba(34, 197, 94, 0.95)"; // thin green border
 
-      // 1. Spotlight: radial gradient to "light up" the area of interest
-      const glowRadius = radius * 2.2;
-      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
-      gradient.addColorStop(0, "rgba(255, 230, 180, 0.4)");
-      gradient.addColorStop(0.4, "rgba(255, 200, 120, 0.15)");
-      gradient.addColorStop(1, "rgba(255, 180, 80, 0)");
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
-      ctx.fill();
+    hazards.forEach((hazard) => {
+      const b = hazard.boundingBox;
+      const x = b.x * scaleX;
+      const y = b.y * scaleY;
+      const w = b.width * scaleX;
+      const boxH = b.height * scaleY;
 
-      // 2. Circle around the hazard (attached to the moving person/car)
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color.replace("0.9", "0.15").replace("0.85", "0.12");
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      // 1. Subtle green highlight inside the box
+      ctx.fillStyle = HIGHLIGHT_FILL;
+      ctx.fillRect(x, y, w, boxH);
 
-      // 3. Connector from symbol down to hazard so viewer sees the symbol is attached
-      const iconAnchorY = cy - radius - iconSize * 0.2;
-      const circleTopY = cy - radius;
-      ctx.strokeStyle = color.replace(/[\d.]+\)$/, "1)");
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 3]);
-      ctx.beginPath();
-      ctx.moveTo(cx, iconAnchorY);
-      ctx.lineTo(cx, circleTopY);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      // 2. Thin green box around the detection
+      ctx.strokeStyle = BOX_STROKE_COLOR;
+      ctx.lineWidth = BOX_STROKE;
+      ctx.strokeRect(x, y, w, boxH);
 
-      // 4. Icon attached above the hazard (moves with the hazard)
-      drawHazardIcon(ctx, cx, cy - radius, h.type, iconSize, color.replace(/[\d.]+\)$/, "1)"));
-
-      // 5. Label (person/vehicle + confidence) so viewer knows the hazard that's come up
-      ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.font = "bold 12px Arial";
-      ctx.textAlign = "center";
-      const labelY = cy - radius - iconSize * 1.6 - 8;
-      const typeLabel = h.type === "person" ? "Person" : h.type === "vehicle" ? "Vehicle" : h.type;
-      ctx.fillText(
-        `${typeLabel}${h.confidence != null ? ` ${(h.confidence * 100).toFixed(0)}%` : ""}`,
-        cx,
-        labelY
-      );
+      // 3. Small label above the box (optional, keeps context)
+      const typeLabel = hazard.type === "person" ? "Person" : hazard.type === "vehicle" ? "Vehicle" : hazard.type;
+      const labelText = `${typeLabel}${hazard.confidence != null ? ` ${(hazard.confidence * 100).toFixed(0)}%` : ""}`;
+      ctx.font = "11px Arial";
+      ctx.fillStyle = "rgba(34, 197, 94, 0.95)";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      const labelY = Math.max(14, y - 4);
+      ctx.fillText(labelText, x, labelY);
     });
   };
 
@@ -365,7 +270,7 @@ export function LiveVideoFeed({
             drawPolygon(ctx, scaled, color, zone.name);
           });
         }
-        drawHazardCircles(ctx, w, h, hazardRefWidth, hazardRefHeight);
+        drawHazardBoxes(ctx, w, h, hazardRefWidth, hazardRefHeight);
       };
       drawZonesAndHazards();
       const interval = setInterval(drawZonesAndHazards, 200);
@@ -397,7 +302,7 @@ export function LiveVideoFeed({
               drawPolygon(ctx, scaled, color, zone.name);
             });
           }
-          drawHazardCircles(ctx, vw, vh, hazardRefWidth, hazardRefHeight);
+          drawHazardBoxes(ctx, vw, vh, hazardRefWidth, hazardRefHeight);
         }
       }
     };

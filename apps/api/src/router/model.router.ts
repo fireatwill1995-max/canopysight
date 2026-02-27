@@ -137,7 +137,7 @@ export const modelRouter = router({
         };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
-        console.error("Error building model state:", error);
+        logger.error("Error building model state", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to build model state" });
       }
     }),

@@ -14,6 +14,7 @@ COPY packages/validators/package.json packages/validators/
 COPY packages/config/package.json packages/config/
 COPY packages/ui/package.json packages/ui/
 COPY packages/ai/package.json packages/ai/
+COPY services/alert-engine/package.json services/alert-engine/
 
 RUN npm ci
 
@@ -53,4 +54,4 @@ COPY --from=builder /app/packages /app/packages
 WORKDIR /app/apps/api
 EXPOSE 8080
 
-CMD ["npx", "tsx", "dist/server.js"]
+CMD ["node", "dist/server.js"]

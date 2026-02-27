@@ -19,6 +19,7 @@ export const videoClipSchema = z.object({
 export const createVideoClipSchema = videoClipSchema.omit({
   id: true,
   createdAt: true,
+  organizationId: true,
 });
 
 export const signedUrlSchema = z.object({

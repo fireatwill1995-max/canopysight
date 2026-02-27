@@ -99,8 +99,11 @@ export class WebSocketServer {
                 socket.emit("authenticated", { success: true });
               }
             } catch (verifyError) {
-              const errorMessage = verifyError instanceof Error ? verifyError.message : "Token verification failed";
-              socket.emit("authenticated", { success: false, error: errorMessage });
+              logger.warn("WebSocket token verification failed", {
+                socketId: socket.id,
+                error: verifyError instanceof Error ? verifyError.message : "Unknown",
+              });
+              socket.emit("authenticated", { success: false, error: "Token verification failed" });
               return;
             }
           } else {
@@ -117,22 +120,31 @@ export class WebSocketServer {
         }
       });
 
-      // Subscribe to alerts
       socket.on("subscribe:alerts", (filters: { siteIds?: string[]; minSeverity?: string }) => {
+        if (!this.connectedClients.has(socket.id)) {
+          socket.emit("error", { message: "Not authenticated" });
+          return;
+        }
         const orgId = this.getOrganizationId(socket.id);
         socket.join(`alerts:${orgId}`);
         logger.debug("Client subscribed to alerts", { socketId: socket.id, organizationId: orgId, filters });
       });
 
-      // Subscribe to detections
       socket.on("subscribe:detections", (filters: { siteIds?: string[] }) => {
+        if (!this.connectedClients.has(socket.id)) {
+          socket.emit("error", { message: "Not authenticated" });
+          return;
+        }
         const orgId = this.getOrganizationId(socket.id);
         socket.join(`detections:${orgId}`);
         logger.debug("Client subscribed to detections", { socketId: socket.id, organizationId: orgId, filters });
       });
 
-      // Subscribe to device status
       socket.on("subscribe:devices", () => {
+        if (!this.connectedClients.has(socket.id)) {
+          socket.emit("error", { message: "Not authenticated" });
+          return;
+        }
         const orgId = this.getOrganizationId(socket.id);
         socket.join(`devices:${orgId}`);
         logger.debug("Client subscribed to device status", { socketId: socket.id, organizationId: orgId });

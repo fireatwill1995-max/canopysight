@@ -3,7 +3,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
 import { useState } from "react";
-import { trpc } from "@/lib/trpc/client";
 
 interface ReportGeneratorProps {
   siteId?: string;

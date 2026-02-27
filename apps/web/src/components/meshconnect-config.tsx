@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button, Skeleton } from "@canopy-sight/ui";
+import { useToast } from "@canopy-sight/ui";
 
 interface MeshConnectConfigProps {
   deviceId: string;
@@ -11,6 +12,7 @@ interface MeshConnectConfigProps {
 }
 
 export function MeshConnectConfig({ deviceId, onClose }: MeshConnectConfigProps) {
+  const { addToast } = useToast();
   const { data: config, isLoading, refetch } = trpc.meshconnect.getConfig.useQuery(
     { deviceId },
     { enabled: !!deviceId }
@@ -19,7 +21,10 @@ export function MeshConnectConfig({ deviceId, onClose }: MeshConnectConfigProps)
   const updateMutation = trpc.meshconnect.upsertConfig.useMutation({
     onSuccess: () => {
       refetch();
-      alert("MeshConnect configuration saved successfully!");
+      addToast({ type: "success", title: "Saved", description: "MeshConnect configuration saved successfully." });
+    },
+    onError: (e) => {
+      addToast({ type: "error", title: "Save failed", description: e.message });
     },
   });
 

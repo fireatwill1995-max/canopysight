@@ -36,32 +36,33 @@ export const ingestionRouter = router({
         });
         if (!site) throw new TRPCError({ code: "NOT_FOUND", message: "Site not found" });
 
-        // Represent a stream as a Device row (truth layer node). Keeps v1 minimal.
-        // We treat (siteId + name) as a pseudo-identifier and upsert manually.
-        const existing = await ctx.prisma.device.findFirst({
-          where: {
-            organizationId: ctx.organizationId,
-            siteId: input.siteId,
-            name: input.name,
-          },
-        });
-
-        const device = existing
-          ? await ctx.prisma.device.update({
-              where: { id: existing.id },
-              data: {
-                firmwareVersion: input.streamType,
-              },
-            })
-          : await ctx.prisma.device.create({
-              data: {
-                name: input.name,
-                siteId: input.siteId,
-                organizationId: ctx.organizationId,
-                status: "offline",
-                firmwareVersion: input.streamType,
-              },
-            });
+        // Atomic find-or-create: try create first, fall back to update on conflict.
+        let device;
+        try {
+          device = await ctx.prisma.device.create({
+            data: {
+              name: input.name,
+              siteId: input.siteId,
+              organizationId: ctx.organizationId,
+              status: "offline",
+              firmwareVersion: input.streamType,
+            },
+          });
+        } catch (createError) {
+          // If creation failed (likely duplicate), find and update
+          const existing = await ctx.prisma.device.findFirst({
+            where: {
+              organizationId: ctx.organizationId,
+              siteId: input.siteId,
+              name: input.name,
+            },
+          });
+          if (!existing) throw createError;
+          device = await ctx.prisma.device.update({
+            where: { id: existing.id },
+            data: { firmwareVersion: input.streamType },
+          });
+        }
 
         // Emit a health/status datapoint (confidence first-class)
         await ctx.prisma.systemHealth.create({
@@ -103,7 +104,7 @@ export const ingestionRouter = router({
         siteId: z.string(),
         streamId: z.string().optional(),
         kind: z.enum(["imagery", "lidar", "telemetry", "environmental", "vibration", "other"]),
-        capturedAt: z.date(),
+        capturedAt: z.coerce.date(),
         location: z
           .object({
             latitude: z.number(),

@@ -77,26 +77,45 @@ export const notificationRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
+      try {
+        const { id, ...data } = input;
 
-      const preference = await ctx.prisma.notificationPreference.findFirst({
-        where: {
-          id,
+        const preference = await ctx.prisma.notificationPreference.findFirst({
+          where: {
+            id,
+            organizationId: ctx.organizationId,
+          },
+        });
+
+        if (!preference) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Notification preference not found" });
+        }
+
+        const updated = await ctx.prisma.notificationPreference.update({
+          where: { id },
+          data: {
+            isActive: data.isActive,
+            config: data.config != null ? (data.config as object) : undefined,
+          },
+        });
+        
+        logger.info("Notification preference updated", {
+          preferenceId: id,
           organizationId: ctx.organizationId,
-        },
-      });
-
-      if (!preference) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Notification preference not found" });
+        });
+        
+        return updated;
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        logger.error("Error updating notification preference", error, {
+          preferenceId: input.id,
+          organizationId: ctx.organizationId,
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update notification preference",
+        });
       }
-
-      return ctx.prisma.notificationPreference.update({
-        where: { id },
-        data: {
-          isActive: data.isActive,
-          config: data.config != null ? (data.config as object) : undefined,
-        },
-      });
     }),
 
   delete: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {

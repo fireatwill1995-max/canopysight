@@ -85,6 +85,24 @@ export default function AnalyticsPage() {
     { enabled: canQuery && !!filters.siteId, retry: false }
   );
 
+  const { data: occupancyByZone } = trpc.analytics.occupancyByZone.useQuery(
+    {
+      siteId: filters.siteId as string,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    },
+    { enabled: canQuery && !!filters.siteId, retry: false }
+  );
+
+  const { data: timeOfDayPressure } = trpc.analytics.timeOfDayPressure.useQuery(
+    {
+      siteId: filters.siteId,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    },
+    { enabled: canQuery, retry: false }
+  );
+
   const { data: sites } = trpc.site.list.useQuery(undefined, { enabled: canQuery, retry: false });
   const { data: devices } = trpc.device.list.useQuery({ siteId: filters.siteId }, { enabled: canQuery });
   const { data: zones } = trpc.zone.list.useQuery(
@@ -232,6 +250,7 @@ export default function AnalyticsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search detections..."
+                aria-label="Search detections"
                 className="w-full px-4 py-2 pl-10 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]"
               />
               <svg
@@ -239,6 +258,7 @@ export default function AnalyticsPage() {
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -420,6 +440,69 @@ export default function AnalyticsPage() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Congestion & flow: occupancy by zone */}
+          {filters.siteId && occupancyByZone && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Congestion & flow — occupancy by zone</CardTitle>
+                <CardDescription>
+                  Overcrowding, pinch points, clustering in waiting areas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {occupancyByZone.byZone && occupancyByZone.byZone.length > 0 ? (
+                  <div className="space-y-2">
+                    {occupancyByZone.byZone.map((row: { zoneId: string; count: number }) => (
+                      <div key={row.zoneId} className="flex items-center gap-4 p-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                        <span className="font-mono text-sm">{row.zoneId}</span>
+                        <span className="font-semibold">{row.count}</span>
+                        <span className="text-sm text-muted-foreground">detections</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No zone occupancy data in this period</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Time-of-day pressure (rush hours, out-of-hours) */}
+          {timeOfDayPressure && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Time-of-day pressure</CardTitle>
+                <CardDescription>
+                  Rush hours, out-of-hours activity, lone worker context
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {timeOfDayPressure.byHour && timeOfDayPressure.byHour.some((h: { count: number }) => h.count > 0) ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                    {timeOfDayPressure.byHour.map((row: { hour: number; count: number; label: string }) => (
+                      <div
+                        key={row.hour}
+                        className={`p-2 rounded text-center text-sm ${
+                          row.label === "Out-of-hours"
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : row.label === "Peak"
+                              ? "bg-orange-100 dark:bg-orange-900/30"
+                              : "bg-gray-100 dark:bg-gray-800/50"
+                        }`}
+                      >
+                        <div className="font-semibold">{row.hour}:00</div>
+                        <div className="text-muted-foreground">{row.count}</div>
+                        <div className="text-xs mt-1">{row.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No time-of-day data in this period</p>
+                )}
               </CardContent>
             </Card>
           )}

@@ -85,9 +85,13 @@ export default function IncidentsPage() {
     }
   };
 
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const handleResolve = (id: string) => {
     if (simulationOn) return;
-    resolveMutation.mutate({ id });
+    setResolvingId(id);
+    resolveMutation.mutate({ id }, {
+      onSettled: () => setResolvingId(null),
+    });
   };
 
   return (
@@ -135,16 +139,25 @@ export default function IncidentsPage() {
                     </CardTitle>
                     <CardDescription className="mt-2">{incident.description}</CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/incidents/${incident.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="min-h-[36px] touch-manipulation"
+                      >
+                        View reconstruction
+                      </Button>
+                    </Link>
                     {!incident.resolvedAt && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleResolve(incident.id)}
-                        disabled={resolveMutation.isPending}
+                        disabled={resolvingId === incident.id}
                         className="border-green-200 text-green-700 hover:bg-green-50 min-h-[36px] touch-manipulation"
                       >
-                        {resolveMutation.isPending ? "Resolving..." : "Resolve"}
+                        {resolvingId === incident.id ? "Resolving..." : "Resolve"}
                       </Button>
                     )}
                   </div>

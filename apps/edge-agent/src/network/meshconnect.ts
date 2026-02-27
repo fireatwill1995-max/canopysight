@@ -109,7 +109,10 @@ export class MeshConnectManager {
       
       this.isInitialized = true;
       
-      // Start topology updates
+      if (this.topologyUpdateInterval) {
+        clearInterval(this.topologyUpdateInterval);
+        this.topologyUpdateInterval = null;
+      }
       this.startTopologyUpdates();
       
       console.log(`✅ MeshConnect initialized: ${this.config.meshNodeId}`);
@@ -213,18 +216,22 @@ export class MeshConnectManager {
    * Start periodic topology updates
    */
   private startTopologyUpdates(): void {
-    // Update topology every 30 seconds
-    this.topologyUpdateInterval = setInterval(async () => {
+    this.topologyUpdateInterval = setInterval(() => {
       if (this.isInitialized) {
-        await this.updateStatus();
-        // Refresh topology from mesh network
-        const topology = await this.getTopology();
-        if (topology.nodes.length > 0 && this.status) {
-          const nodeId = this.status.nodeId;
-          this.status.neighborNodes = topology.nodes
-            .filter((n) => n.nodeId !== nodeId)
-            .map((n) => n.nodeId);
-        }
+        void (async () => {
+          try {
+            await this.updateStatus();
+            const topology = await this.getTopology();
+            if (topology.nodes.length > 0 && this.status) {
+              const nodeId = this.status.nodeId;
+              this.status.neighborNodes = topology.nodes
+                .filter((n) => n.nodeId !== nodeId)
+                .map((n) => n.nodeId);
+            }
+          } catch (error) {
+            console.error("Topology update failed:", error instanceof Error ? error.message : error);
+          }
+        })();
       }
     }, 30000);
   }

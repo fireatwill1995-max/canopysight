@@ -43,3 +43,25 @@ prisma/migrations/
 *.pyc
 __pycache__/
 *.egg-info/
+.venv*/
+venv/
+
+# Models & datasets (large files)
+*.onnx
+*.pt
+*.pth
+datasets/
+runs/
+
+# Secrets & credentials
+*.key
+credentials.json
+.env.production
+.env.staging
+ngrok-config.yml
+
+# Source maps in production
+*.js.map
+
+# Separate project
+autotargetaccuser/

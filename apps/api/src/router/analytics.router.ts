@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/trpc";
-import { heatmapQuerySchema, analyticsTimeRangeSchema } from "@canopy-sight/validators";
+import {
+  heatmapQuerySchema,
+  analyticsTimeRangeSchema,
+  occupancyByZoneSchema,
+  timeOfDayPressureSchema,
+} from "@canopy-sight/validators";
 import { TRPCError } from "@trpc/server";
 import { logger } from "@canopy-sight/config";
 
@@ -21,6 +26,8 @@ export const analyticsRouter = router({
           boundingBox: true,
           timestamp: true,
         },
+        orderBy: { timestamp: "desc" },
+        take: 10_000,
       });
 
       // Generate heatmap data points from bounding boxes
@@ -49,7 +56,7 @@ export const analyticsRouter = router({
         resolution: input.resolution,
       };
     } catch (error) {
-      console.error("Error generating heatmap:", error);
+      logger.error("Error generating heatmap", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to generate heatmap",
@@ -157,6 +164,7 @@ export const analyticsRouter = router({
         orderBy: {
           timestamp: "asc",
         },
+        take: 10_000,
       });
 
       // Simple pattern detection - in production, this would use AI/ML
@@ -231,6 +239,98 @@ export const analyticsRouter = router({
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to analyze behavioral patterns",
+      });
+    }
+  }),
+
+  /** Congestion & flow: occupancy per zone (clustering, pinch points, waiting areas) */
+  occupancyByZone: protectedProcedure.input(occupancyByZoneSchema).query(async ({ ctx, input }) => {
+    try {
+      const events = await ctx.prisma.detectionEvent.findMany({
+        where: {
+          siteId: input.siteId,
+          organizationId: ctx.organizationId,
+          timestamp: { gte: input.startDate, lte: input.endDate },
+        },
+        select: { zoneIds: true, timestamp: true },
+        orderBy: { timestamp: "desc" },
+        take: 10_000,
+      });
+
+      const byZone = new Map<string, { count: number; timestamps: number[] }>();
+      events.forEach((e: { zoneIds: string[]; timestamp: Date }) => {
+        const ids = Array.isArray(e.zoneIds) ? e.zoneIds : [];
+        ids.forEach((zoneId) => {
+          if (!byZone.has(zoneId)) byZone.set(zoneId, { count: 0, timestamps: [] });
+          const entry = byZone.get(zoneId)!;
+          entry.count += 1;
+          entry.timestamps.push(e.timestamp.getTime());
+        });
+      });
+
+      const result = Array.from(byZone.entries()).map(([zoneId, { count, timestamps }]) => ({
+        zoneId,
+        count,
+        maxCount: count,
+        avgCount: timestamps.length > 0 ? count : 0,
+      }));
+
+      return { byZone: result };
+    } catch (error) {
+      logger.error("Error fetching occupancy by zone", error, { siteId: input.siteId });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch occupancy by zone",
+      });
+    }
+  }),
+
+  /** Time-of-day pressure patterns (rush hours, out-of-hours, lone worker context) */
+  timeOfDayPressure: protectedProcedure.input(timeOfDayPressureSchema).query(async ({ ctx, input }) => {
+    try {
+      const where: {
+        organizationId: string;
+        timestamp: { gte: Date; lte: Date };
+        siteId?: string;
+      } = {
+        organizationId: ctx.organizationId,
+        timestamp: { gte: input.startDate, lte: input.endDate },
+        ...(input.siteId && { siteId: input.siteId }),
+      };
+
+      const events = await ctx.prisma.detectionEvent.findMany({
+        where,
+        select: { timestamp: true },
+        orderBy: { timestamp: "desc" },
+        take: 50_000,
+      });
+
+      const byHour = new Map<number, number>();
+      for (let h = 0; h < 24; h++) byHour.set(h, 0);
+      events.forEach((e: { timestamp: Date }) => {
+        const hour = new Date(e.timestamp).getHours();
+        byHour.set(hour, (byHour.get(hour) ?? 0) + 1);
+      });
+
+      const result = Array.from(byHour.entries())
+        .map(([hour, count]) => ({
+          hour,
+          count,
+          label:
+            hour >= 22 || hour < 6
+              ? "Out-of-hours"
+              : (hour >= 7 && hour < 9) || (hour >= 17 && hour < 19)
+                ? "Peak"
+                : "Normal",
+        }))
+        .sort((a, b) => a.hour - b.hour);
+
+      return { byHour: result };
+    } catch (error) {
+      logger.error("Error fetching time-of-day pressure", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch time-of-day pressure",
       });
     }
   }),

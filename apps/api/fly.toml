@@ -7,7 +7,7 @@ app = 'canopy-sight-api'
 primary_region = 'syd'
 
 [build]
-  dockerfile = 'apps/api/Dockerfile'
+  dockerfile = 'Dockerfile'
 
 [env]
   NODE_ENV = 'production'
@@ -29,7 +29,6 @@ primary_region = 'syd'
     soft_limit = 20
 
 [[vm]]
-  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
   memory_mb = 512

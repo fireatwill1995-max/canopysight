@@ -35,31 +35,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               return failureCount < 1;
             },
             refetchOnWindowFocus: false,
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            onError: (error: unknown) => {
-              // Suppress console errors for connection issues in development
-              if (process.env.NODE_ENV === "development") {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                if (errorMessage.includes("Failed to fetch") || 
-                    errorMessage.includes("ERR_CONNECTION_REFUSED")) {
-                  // Silently handle - API server may not be running
-                  return;
-                }
-              }
-            },
+            staleTime: 5 * 60 * 1000,
           },
           mutations: {
             retry: false,
-            onError: (error: unknown) => {
-              // Suppress console errors for connection issues in development
-              if (process.env.NODE_ENV === "development") {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                if (errorMessage.includes("Failed to fetch") || 
-                    errorMessage.includes("ERR_CONNECTION_REFUSED")) {
-                  return;
-                }
-              }
-            },
           },
         },
       })

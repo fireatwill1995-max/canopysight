@@ -14,17 +14,15 @@ export interface PerformanceMetrics {
 const SLOW_QUERY_THRESHOLD_MS = 1000; // 1 second
 const VERY_SLOW_QUERY_THRESHOLD_MS = 5000; // 5 seconds
 
-/**
- * Performance monitoring middleware for tRPC
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function performanceMiddleware(): any {
-  return async (opts: {
-    ctx: { organizationId?: string; userId?: string };
-    path: string;
-    type: string;
-    next: () => Promise<unknown>;
-  }) => {
+type TRPCMiddleware = (opts: {
+  ctx: { organizationId?: string; userId?: string };
+  path: string;
+  type: string;
+  next: () => Promise<unknown>;
+}) => Promise<unknown>;
+
+export function performanceMiddleware(): TRPCMiddleware {
+  return async (opts) => {
     const startTime = Date.now();
     const procedure = `${opts.type}.${opts.path}`;
 
@@ -105,7 +103,7 @@ export class PerformanceTracker {
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const p95Index = Math.floor(sorted.length * 0.95);
-    const p95 = sorted[p95Index] || 0;
+    const p95 = sorted[p95Index] ?? 0;
 
     return {
       count: sorted.length,

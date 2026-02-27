@@ -139,7 +139,6 @@ export const deviceRouter = router({
         organizationId: ctx.organizationId,
         input: { ...input, siteId: input.siteId },
       });
-      const message = error instanceof Error ? error.message : "Failed to create device";
       const prismaCode = error && typeof error === "object" && "code" in error ? (error as { code: string }).code : undefined;
       if (prismaCode === "P2002") {
         throw new TRPCError({
@@ -155,7 +154,7 @@ export const deviceRouter = router({
       }
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: message.length > 200 ? "Failed to create device" : message,
+        message: "Failed to create device",
       });
     }
   }),
@@ -248,7 +247,7 @@ export const deviceRouter = router({
         const device = await ctx.prisma.device.findFirst({
           where: {
             id: input.deviceId,
-            organizationId: ctx.organizationId!,
+            organizationId: ctx.organizationId,
           },
         });
         if (!device) {
@@ -294,7 +293,7 @@ export const deviceRouter = router({
         const device = await ctx.prisma.device.findFirst({
           where: {
             id: deviceId,
-            organizationId: ctx.organizationId!,
+            organizationId: ctx.organizationId,
           },
         });
         if (!device) {
@@ -334,7 +333,7 @@ export const deviceRouter = router({
         const device = await ctx.prisma.device.findFirst({
           where: {
             id: input.deviceId,
-            organizationId: ctx.organizationId!,
+            organizationId: ctx.organizationId,
           },
         });
         if (!device) {
@@ -387,7 +386,7 @@ export const deviceRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Device not found" });
         }
 
-        return await ctx.prisma.device.update({
+        const updated = await ctx.prisma.device.update({
           where: { id: input.deviceId },
           data: {
             lastHeartbeat: new Date(),
@@ -400,7 +399,7 @@ export const deviceRouter = router({
           organizationId: ctx.organizationId,
         });
         
-        return device;
+        return updated;
       } catch (error) {
         if (error instanceof TRPCError) {
           throw error;

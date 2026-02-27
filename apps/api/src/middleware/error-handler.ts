@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { prisma } from "@canopy-sight/database";
 import { logger } from "@canopy-sight/config";
 
 /**

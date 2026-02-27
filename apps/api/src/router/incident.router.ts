@@ -100,6 +100,72 @@ export const incidentRouter = router({
     }
   }),
 
+  /** Incident reconstruction & learning: visual timeline, environmental context, contributing conditions */
+  reconstruction: protectedProcedure
+    .input(z.object({ id: z.string(), windowMinutes: z.number().min(5).max(120).default(30) }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const incident = await ctx.prisma.incidentReport.findFirst({
+          where: {
+            id: input.id,
+            organizationId: ctx.organizationId,
+          },
+          include: { site: true },
+        });
+
+        if (!incident) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Incident not found",
+          });
+        }
+
+        const reportedAt = incident.reportedAt;
+        const start = new Date(reportedAt.getTime() - input.windowMinutes * 60 * 1000);
+        const end = new Date(reportedAt.getTime() + input.windowMinutes * 60 * 1000);
+
+        const timelineEvents = await ctx.prisma.detectionEvent.findMany({
+          where: {
+            siteId: incident.siteId,
+            organizationId: ctx.organizationId,
+            timestamp: { gte: start, lte: end },
+          },
+          orderBy: { timestamp: "asc" },
+          take: 200,
+        });
+
+        const contributingConditions =
+          incident.contributingConditions != null
+            ? (incident.contributingConditions as {
+                crowding?: boolean;
+                crowdingLevel?: number;
+                zoneIds?: string[];
+                layoutNotes?: string;
+                timeOfDay?: string;
+                hourOfDay?: number;
+              })
+            : null;
+
+        return {
+          incident,
+          timeline: timelineEvents,
+          contributingConditions,
+          windowStart: start,
+          windowEnd: end,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        logger.error("Error fetching incident reconstruction", error, {
+          incidentId: input.id,
+          organizationId: ctx.organizationId,
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch incident reconstruction",
+        });
+      }
+    }),
+
   create: protectedProcedure.input(createIncidentSchema).mutation(async ({ ctx, input }) => {
     try {
       // Verify site belongs to organization
@@ -125,7 +191,10 @@ export const incidentRouter = router({
           severity: input.severity,
           reportedBy: input.reportedBy || ctx.userId,
           organizationId: ctx.organizationId,
-          metadata: input.metadata || {},
+          metadata: (input.metadata ?? {}) as Record<string, string | number | boolean | null>,
+          ...(input.contributingConditions && {
+            contributingConditions: input.contributingConditions as object,
+          }),
         },
         include: {
           site: true,
@@ -174,9 +243,13 @@ export const incidentRouter = router({
         });
       }
 
+      const data: Record<string, unknown> = { ...updateData };
+      if (input.contributingConditions !== undefined) {
+        data.contributingConditions = input.contributingConditions ?? undefined;
+      }
       const incident = await ctx.prisma.incidentReport.update({
         where: { id },
-        data: updateData,
+        data,
         include: {
           site: true,
         },

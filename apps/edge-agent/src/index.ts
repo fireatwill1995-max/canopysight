@@ -28,6 +28,7 @@ class EdgeAgent {
   private ppeDetector: PPEDetector;
   private meshConnect: MeshConnectManager | null = null;
   private isRunning: boolean = false;
+  private processingFrame: boolean = false;
   private frameInterval: NodeJS.Timeout | null = null;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private queueProcessorInterval: NodeJS.Timeout | null = null;
@@ -150,11 +151,11 @@ class EdgeAgent {
   }
 
   private async processFrame(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning || this.processingFrame) return;
+    this.processingFrame = true;
 
     try {
-      // Capture frame (single camera in v1)
-      let image: sharp.Sharp = await this.camera.captureFrameAsImage();
+      const image: sharp.Sharp = await this.camera.captureFrameAsImage();
 
       // Run detection
       let detections = await this.detector.detect(image);
@@ -166,6 +167,7 @@ class EdgeAgent {
 
       // Analyze zones
       const zoneAnalysis = this.zoneAnalyzer.analyzeDetections(detections);
+      const occupancyByZone = this.zoneAnalyzer.getOccupancyByZone(detections);
 
       // Detect loitering in zones
       const trackedObjects = this.tracker.getTracks();
@@ -218,6 +220,24 @@ class EdgeAgent {
             (ppeCompliance && !ppeCompliance.compliant);
 
           if (shouldCreateEvent) {
+            const zonesForDetection = zoneAnalysis.breaches
+              .filter((b) => b.objectId === detection.trackId)
+              .map((b) => b.zoneId);
+            const occupancyInZone =
+              zonesForDetection.length > 0
+                ? Math.max(
+                    ...zonesForDetection.map((zid) => occupancyByZone.get(zid) ?? 0)
+                  )
+                : 0;
+            const behaviouralIndicator: "clustering" | "congestion" | "abnormal_dwell" | undefined =
+              loiteringEvent && loiteringEvent.severity !== "low"
+                ? "abnormal_dwell"
+                : occupancyInZone >= 5
+                  ? "congestion"
+                  : occupancyInZone >= 3
+                    ? "clustering"
+                    : undefined;
+
             const event: DetectionEvent = {
               id: uuidv4(),
               deviceId: config.deviceId,
@@ -233,6 +253,8 @@ class EdgeAgent {
                 breaches: zoneAnalysis.breaches.filter(
                   (b) => b.objectId === detection.trackId
                 ),
+                ...(occupancyInZone > 0 && { occupancyInZone }),
+                ...(behaviouralIndicator && { behaviouralIndicator }),
               },
               ...(loiteringEvent && {
                 loiteringEvent: {
@@ -263,7 +285,8 @@ class EdgeAgent {
       }
     } catch (error) {
       console.error("Error processing frame:", error);
-      // Don't throw - continue processing frames
+    } finally {
+      this.processingFrame = false;
     }
   }
 

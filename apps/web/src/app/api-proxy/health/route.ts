@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ status: "unknown" }));
 
       return NextResponse.json(data, {
         status: response.status,

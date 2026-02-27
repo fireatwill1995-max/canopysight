@@ -174,11 +174,11 @@ export const detectionRouter = router({
         },
       });
 
-      // Generate embedding for vector search (async, don't block)
-      // This runs in background to avoid slowing down event creation
-      setImmediate(async () => {
+      // Generate embedding for vector search (fire-and-forget with own prisma ref)
+      void (async () => {
         try {
           const { embeddingsService } = await import("../services/embeddings-service");
+          const { prisma: bgPrisma } = await import("@canopy-sight/database");
           const embedding = await embeddingsService.generateForEvent({
             type: event.type,
             confidence: event.confidence,
@@ -188,8 +188,7 @@ export const detectionRouter = router({
             metadata: (event.metadata as Record<string, unknown>) || {},
           });
 
-          // Store embedding in metadata (pgvector would require schema migration)
-          await ctx.prisma.detectionEvent.update({
+          await bgPrisma.detectionEvent.update({
             where: { id: event.id },
             data: {
               metadata: {
@@ -204,9 +203,8 @@ export const detectionRouter = router({
             error: embeddingError instanceof Error ? embeddingError.message : String(embeddingError),
             eventId: event.id,
           });
-          // Continue without embedding
         }
-      });
+      })();
 
       // Broadcast via WebSocket
       getWsServer()?.broadcastDetection(ctx.organizationId, {

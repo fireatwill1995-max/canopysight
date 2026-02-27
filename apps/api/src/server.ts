@@ -11,21 +11,17 @@ import { WebSocketServer } from "./services/websocket-server";
 import { eventAggregator } from "./services/event-aggregator";
 import { logger } from "@canopy-sight/config";
 import { serveOpenAPISpec, serveSwaggerUI } from "./middleware/openapi";
+import { setWsServerRef } from "./services/ws-server-ref";
+import { alertDispatcher } from "./services/alert-dispatcher";
 
-// Initialize Sentry before other middleware
 setupSentry();
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 3001;
 
-// Initialize WebSocket server
 const wsServer = new WebSocketServer(httpServer);
-import { setWsServerRef } from "./services/ws-server-ref";
 setWsServerRef(wsServer);
 
-// Initialize services with WebSocket server
-import { alertDispatcher } from "./services/alert-dispatcher";
 alertDispatcher.setWebSocketServer(wsServer);
 
 // Start event aggregator (non-blocking, handles DB connection errors gracefully)
@@ -78,14 +74,7 @@ app.use(
     ],
   })
 );
-// Ensure all responses are JSON by default
-app.use((req, res, next) => {
-  // Set JSON content type for all responses
-  res.setHeader("Content-Type", "application/json");
-  next();
-});
-
-app.use(express.json({ limit: "10mb" })); // Limit JSON payload size
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Health check endpoint - before tRPC to avoid context creation overhead
@@ -117,15 +106,16 @@ app.get("/health", async (req, res) => {
     try {
       const { prisma } = await import("@canopy-sight/database");
       
-      // Use Promise.race to add timeout
+      let timeoutId: NodeJS.Timeout;
       const dbCheck = Promise.race([
         prisma.$queryRaw`SELECT 1`,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Database check timeout")), 2000)
-        ),
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error("Database check timeout")), 2000);
+        }),
       ]);
       
       await dbCheck;
+      clearTimeout(timeoutId!);
       health.database = "connected";
     } catch (dbError) {
       // Database check failed - mark as disconnected but don't fail health check
@@ -169,9 +159,6 @@ app.use(
   })
 );
 
-/**
- * Health check endpoint with detailed system status
- */
 // API Documentation endpoints
 app.get("/api/openapi.json", serveOpenAPISpec);
 app.get("/api/docs", serveSwaggerUI);

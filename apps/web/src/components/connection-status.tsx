@@ -32,7 +32,7 @@ export function ConnectionStatus() {
   // Only show if there's a connection issue and we've waited a bit
   if (showWarning && apiConnected === false) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-lg shadow-lg max-w-sm animate-in slide-in-from-bottom-5">
+      <div role="alert" className="fixed bottom-4 right-4 z-50 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-lg shadow-lg max-w-sm animate-in slide-in-from-bottom-5">
         <div className="flex items-start gap-3">
           <span className="text-xl flex-shrink-0">⚠️</span>
           <div className="flex-1 min-w-0">

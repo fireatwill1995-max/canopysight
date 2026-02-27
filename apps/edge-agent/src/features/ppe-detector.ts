@@ -53,21 +53,26 @@ export class PPEDetector {
     for (const person of personDetections) {
       if (person.type !== "person") continue;
 
-      // Extract person region from image
-      const personRegion = await image
-        .extract({
-          left: Math.max(0, Math.floor(person.boundingBox.x)),
-          top: Math.max(0, Math.floor(person.boundingBox.y)),
-          width: Math.floor(person.boundingBox.width),
-          height: Math.floor(person.boundingBox.height),
-        })
-        .toBuffer();
+      try {
+        const imgMeta = await image.metadata();
+        const imgW = imgMeta.width ?? 1920;
+        const imgH = imgMeta.height ?? 1080;
 
-      // Analyze for PPE (heuristic approach)
-      // In production, this would use a specialized model
-      const ppe = await this.analyzePPEHeuristic(personRegion, person);
+        const left = Math.max(0, Math.floor(person.boundingBox.x));
+        const top = Math.max(0, Math.floor(person.boundingBox.y));
+        const width = Math.max(1, Math.min(Math.floor(person.boundingBox.width), imgW - left));
+        const height = Math.max(1, Math.min(Math.floor(person.boundingBox.height), imgH - top));
 
-      ppeDetections.push(ppe);
+        const personRegion = await image
+          .clone()
+          .extract({ left, top, width, height })
+          .toBuffer();
+
+        const ppe = await this.analyzePPEHeuristic(personRegion, person);
+        ppeDetections.push(ppe);
+      } catch (extractError) {
+        console.warn(`Failed to extract person region for PPE analysis: ${extractError instanceof Error ? extractError.message : extractError}`);
+      }
     }
 
     return ppeDetections;
@@ -83,18 +88,14 @@ export class PPEDetector {
     // This is a placeholder - in production, use a fine-tuned YOLO model
     // trained specifically on hard hats, safety vests, gloves, etc.
     
-    // For now, return conservative estimates
-    // A real implementation would:
-    // 1. Load a PPE-specific YOLO model
-    // 2. Run inference on the person region
-    // 3. Detect hard hat (top region), vest (torso), gloves (hand regions)
-    
+    // Without a real PPE model, assume compliant to avoid false-positive floods.
+    // A real implementation would load a PPE-specific YOLO model and run inference.
     return {
       personId: person.id,
-      hasHardHat: false, // Would be determined by model
-      hasVest: false,
-      hasGloves: false,
-      confidence: 0.5,
+      hasHardHat: true,
+      hasVest: true,
+      hasGloves: true,
+      confidence: 0.1,
       boundingBox: person.boundingBox,
     };
   }

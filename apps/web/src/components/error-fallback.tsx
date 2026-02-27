@@ -10,7 +10,7 @@ interface ErrorFallbackProps {
 export function ErrorFallback({ error, reset }: ErrorFallbackProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6" role="alert">
         <div className="text-center text-gray-900 dark:text-gray-100">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>

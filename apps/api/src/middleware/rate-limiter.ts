@@ -10,10 +10,29 @@ export class RateLimiter {
   private requests: Map<string, number[]> = new Map();
   private windowMs: number;
   private maxRequests: number;
+  private cleanupInterval: NodeJS.Timeout;
 
   constructor(windowMs: number = 60000, maxRequests: number = 100) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
+    this.cleanupInterval = setInterval(() => this.cleanup(), windowMs * 2);
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [key, timestamps] of this.requests.entries()) {
+      const active = timestamps.filter((t) => now - t < this.windowMs);
+      if (active.length === 0) {
+        this.requests.delete(key);
+      } else {
+        this.requests.set(key, active);
+      }
+    }
+  }
+
+  destroy(): void {
+    clearInterval(this.cleanupInterval);
+    this.requests.clear();
   }
 
   /**

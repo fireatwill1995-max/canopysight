@@ -1,20 +1,11 @@
-# fly.toml app configuration file generated for canopy-sight-web on 2026-01-31T17:57:09+10:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = 'canopy-sight-web'
 primary_region = 'syd'
 
 [build]
-  dockerfile = 'apps/web/Dockerfile'
-  [build.args]
-    # NEXT_PUBLIC_* must be present at build time (Next inlines into client bundle).
-    NEXT_PUBLIC_API_URL = "https://canopy-sight-api.fly.dev"
+  dockerfile = 'Dockerfile'
 
 [env]
   NODE_ENV = 'production'
-  PORT = '3000'
   NEXT_PUBLIC_API_URL = 'https://canopy-sight-api.fly.dev'
 
 [http_service]
@@ -22,7 +13,7 @@ primary_region = 'syd'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
   processes = ['app']
 
   [http_service.concurrency]

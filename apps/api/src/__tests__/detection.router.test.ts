@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { appRouter } from "../router";
-import { createContext } from "../trpc/context";
 import { prisma } from "@canopy-sight/database";
 
 // Mock the database

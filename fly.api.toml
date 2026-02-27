@@ -30,7 +30,6 @@ primary_region = "syd"
     soft_limit = 20
 
 [[vm]]
-  memory = "512mb"
   cpu_kind = "shared"
   cpus = 1
   memory_mb = 512

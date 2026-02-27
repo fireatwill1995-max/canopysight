@@ -18,7 +18,7 @@ export class ZoneAnalyzer {
    * Set zones from API configuration
    */
   setZones(zones: Zone[]): void {
-    this.zones = zones.filter((z) => z.isActive);
+    this.zones = zones.filter((z) => z.isActive && z.points && z.points.length >= 3);
   }
 
   /**
@@ -69,15 +69,15 @@ export class ZoneAnalyzer {
         if (this.isPointInPolygon(center, zone.points)) {
           zoneIds.add(zone.id);
 
-          // Check if this is a new breach (not already tracked)
+          const objectId = detection.trackId ?? -1;
           const existingBreach = breaches.find(
-            (b) => b.zoneId === zone.id && b.objectId === detection.trackId
+            (b) => b.zoneId === zone.id && b.objectId === objectId && objectId !== -1
           );
 
-          if (!existingBreach && detection.trackId) {
+          if (!existingBreach) {
             breaches.push({
               zoneId: zone.id,
-              objectId: detection.trackId,
+              objectId,
               timestamp: detection.timestamp,
               entryPoint: center,
             });
@@ -90,6 +90,20 @@ export class ZoneAnalyzer {
       breaches,
       zoneIds: Array.from(zoneIds),
     };
+  }
+
+  /** Occupancy per zone (for clustering, congestion, pinch points) */
+  getOccupancyByZone(detections: Detection[]): Map<string, number> {
+    const countByZone = new Map<string, number>();
+    for (const detection of detections) {
+      const center = this.getCenter(detection.boundingBox);
+      for (const zone of this.zones) {
+        if (this.isPointInPolygon(center, zone.points)) {
+          countByZone.set(zone.id, (countByZone.get(zone.id) ?? 0) + 1);
+        }
+      }
+    }
+    return countByZone;
   }
 
   getZones(): Zone[] {

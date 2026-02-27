@@ -47,15 +47,19 @@ export class AlertDispatcher {
         where: {
           organizationId: alert.organizationId,
           isActive: true,
-          ...(alert.severity && {
-            OR: [
-              { severity: alert.severity },
-              { severity: null }, // All severities
-            ],
-          }),
-          OR: [
-            { siteIds: { isEmpty: true } }, // All sites
-            { siteIds: { has: alert.siteId } }, // Specific site
+          AND: [
+            {
+              OR: [
+                { severity: alert.severity },
+                { severity: null },
+              ],
+            },
+            {
+              OR: [
+                { siteIds: { isEmpty: true } },
+                { siteIds: { has: alert.siteId } },
+              ],
+            },
           ],
         },
       });
@@ -176,16 +180,46 @@ export class AlertDispatcher {
    */
   private async sendWebhook(alert: AlertData, config: Record<string, unknown>): Promise<void> {
     try {
-      const webhookUrl = config.url as string;
-      if (!webhookUrl) {
+      if (typeof config.url !== "string" || !config.url) {
         throw new Error("Webhook URL not configured");
+      }
+      const webhookUrl = config.url;
+
+      let parsed: URL;
+      try {
+        parsed = new URL(webhookUrl);
+      } catch {
+        throw new Error("Invalid webhook URL");
+      }
+
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        throw new Error("Webhook URL must use HTTP or HTTPS");
+      }
+      const forbiddenHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]"];
+      const isPrivate172 = parsed.hostname.startsWith("172.") && (() => {
+        const second = parseInt(parsed.hostname.split(".")[1], 10);
+        return second >= 16 && second <= 31;
+      })();
+      if (forbiddenHosts.includes(parsed.hostname) || parsed.hostname.startsWith("10.") ||
+          parsed.hostname.startsWith("192.168.") || isPrivate172) {
+        throw new Error("Webhook URL must not point to internal/private addresses");
+      }
+
+      const sensitiveHeaders = new Set(["host", "authorization", "cookie", "x-forwarded-for"]);
+      const safeHeaders: Record<string, string> = {};
+      if (config.headers && typeof config.headers === "object") {
+        for (const [key, value] of Object.entries(config.headers as Record<string, string>)) {
+          if (!sensitiveHeaders.has(key.toLowerCase()) && typeof value === "string") {
+            safeHeaders[key] = value;
+          }
+        }
       }
 
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(config.headers as Record<string, string> || {}),
+          ...safeHeaders,
         },
         body: JSON.stringify({
           alert: {
@@ -198,6 +232,7 @@ export class AlertDispatcher {
             timestamp: alert.timestamp.toISOString(),
           },
         }),
+        signal: AbortSignal.timeout(10000),
       });
 
       if (!response.ok) {
@@ -205,13 +240,11 @@ export class AlertDispatcher {
       }
 
       logger.info("Webhook notification sent", {
-        webhookUrl,
         alertId: alert.alertId,
         status: response.status,
       });
     } catch (error) {
       logger.error("Webhook error", error, {
-        webhookUrl: config?.url,
         alertId: alert.alertId,
       });
       throw error;

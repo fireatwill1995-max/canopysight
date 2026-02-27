@@ -274,8 +274,10 @@ export default function SiteDetailPage() {
       </div>
 
       <div className="mb-4 border-b overflow-x-auto">
-        <div className="flex gap-2 sm:gap-4 min-w-max">
+        <div className="flex gap-2 sm:gap-4 min-w-max" role="tablist" aria-label="Site sections">
           <button
+            role="tab"
+            aria-selected={activeTab === "overview"}
             onClick={() => setTab("overview")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "overview"
@@ -286,6 +288,8 @@ export default function SiteDetailPage() {
             Overview
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === "live"}
             onClick={() => setTab("live")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "live"
@@ -296,6 +300,8 @@ export default function SiteDetailPage() {
             Live Feed
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === "zones"}
             onClick={() => setTab("zones")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "zones"
@@ -306,6 +312,8 @@ export default function SiteDetailPage() {
             Zones
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === "mesh"}
             onClick={() => setTab("mesh")}
             className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base whitespace-nowrap touch-manipulation min-h-[44px] ${
               activeTab === "mesh"
@@ -450,7 +458,7 @@ export default function SiteDetailPage() {
                 <CardHeader>
                   <CardTitle>Focused Camera</CardTitle>
                   <CardDescription>
-                    Select a device to focus on, or let alerts auto-select the source device. Detected potential hazards are circled on the feed.
+                    Select a device to focus on, or let alerts auto-select the source device. Detected persons and objects are highlighted with a green box on the feed.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

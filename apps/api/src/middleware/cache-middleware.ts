@@ -1,12 +1,15 @@
 import { getCache, cacheKeys } from "../services/cache";
 import { logger } from "@canopy-sight/config";
 
-/**
- * Cache middleware for tRPC procedures
- * Automatically caches query results
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function cacheMiddleware(ttlSeconds: number = 300): any {
+type TRPCMiddleware = (opts: {
+  ctx: { organizationId?: string };
+  path: string;
+  type: string;
+  input: unknown;
+  next: () => Promise<unknown>;
+}) => Promise<unknown>;
+
+export function cacheMiddleware(ttlSeconds: number = 300): TRPCMiddleware {
   return async (opts: {
     ctx: { organizationId?: string };
     path: string;
@@ -45,12 +48,11 @@ export function cacheMiddleware(ttlSeconds: number = 300): any {
 
       return result;
     } catch (error) {
-      // On error, don't cache, just pass through
       logger.debug("Cache error, bypassing cache", {
         key: cacheKey,
         error: error instanceof Error ? error.message : String(error),
       });
-      return opts.next();
+      throw error;
     }
   };
 }

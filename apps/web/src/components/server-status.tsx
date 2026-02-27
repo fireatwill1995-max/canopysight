@@ -45,7 +45,7 @@ export function ServerStatus() {
     };
 
     checkApi();
-    const interval = setInterval(checkApi, 5000); // Check every 5 seconds
+    const interval = setInterval(checkApi, 15000);
     return () => clearInterval(interval);
   }, []);
 

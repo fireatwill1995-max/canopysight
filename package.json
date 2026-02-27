@@ -31,9 +31,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "helmet": "^8.1.0",
-    "onnxruntime-node": "^1.23.2",
-    "socket.io-client": "^4.8.3"
-  }
+  "dependencies": {}
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@canopy-sight/ui";
+import { useToast } from "@canopy-sight/ui";
 import { getYoutubeVideoId, DEMO_VIDEO_YOUTUBE_ID, DEMO_VIDEO_LOCAL_PATH } from "@/lib/simulation";
 
 interface Point {
@@ -39,6 +40,7 @@ export function ZoneEditor({
   existingZones = [],
   onSave,
 }: ZoneEditorProps) {
+  const { addToast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -236,11 +238,11 @@ export function ZoneEditor({
 
   const handleSave = () => {
     if (points.length < 3) {
-      alert("Zone must have at least 3 points");
+      addToast({ type: "error", title: "Invalid zone", description: "Zone must have at least 3 points." });
       return;
     }
     if (!zoneName.trim()) {
-      alert("Please enter a zone name");
+      addToast({ type: "error", title: "Missing name", description: "Please enter a zone name." });
       return;
     }
 

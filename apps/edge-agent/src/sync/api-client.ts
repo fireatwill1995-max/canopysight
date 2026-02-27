@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { config } from "../config";
 import { DetectionEvent } from "../types";
 
@@ -144,7 +144,7 @@ export class APIClient {
   /**
    * Get MeshConnect configuration
    */
-  async getMeshConnectConfig(deviceId: string): Promise<any> {
+  async getMeshConnectConfig(deviceId: string): Promise<Record<string, unknown> | null> {
     try {
       const response = await this.client.get(`/trpc/meshconnect.getConfig`, {
         params: { input: JSON.stringify({ deviceId }) },

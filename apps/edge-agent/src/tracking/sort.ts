@@ -7,7 +7,7 @@ import { Detection, TrackedObject } from "../types";
 export class SORTTracker {
   private tracks: Map<number, TrackedObject> = new Map();
   private nextTrackId: number = 1;
-  private maxAge: number = 30; // frames
+  private maxAgeSeconds: number = 1; // tracks expire after 1s without match (~30 frames at 30fps)
   private iouThreshold: number = 0.3;
 
   /**
@@ -25,6 +25,7 @@ export class SORTTracker {
     const area1 = box1.width * box1.height;
     const area2 = box2.width * box2.height;
     const union = area1 + area2 - intersection;
+    if (union <= 0) return 0;
 
     return intersection / union;
   }
@@ -102,10 +103,9 @@ export class SORTTracker {
       }
     }
 
-    // Remove old tracks
     for (const [trackId, track] of this.tracks.entries()) {
-      const age = (now.getTime() - track.lastSeen.getTime()) / 1000;
-      if (age > this.maxAge) {
+      const ageSeconds = (now.getTime() - track.lastSeen.getTime()) / 1000;
+      if (ageSeconds > this.maxAgeSeconds) {
         this.tracks.delete(trackId);
       }
     }

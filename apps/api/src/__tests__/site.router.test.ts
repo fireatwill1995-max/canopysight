@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { appRouter } from "../router";
-import { createContext } from "../trpc/context";
 
 describe("Site Router", () => {
   const ctx = {

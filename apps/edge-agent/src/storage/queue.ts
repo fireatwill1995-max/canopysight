@@ -48,7 +48,8 @@ export class OfflineQueue {
         }
       }
 
-      const filename = `${Date.now()}-${event.id}.json`;
+      const safeId = event.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `${Date.now()}-${safeId}.json`;
       const filepath = path.join(this.queuePath, filename);
       
       await fs.writeFile(filepath, JSON.stringify(event, null, 2), "utf-8");
@@ -80,14 +81,7 @@ export class OfflineQueue {
         return null;
       }
       const parsed = JSON.parse(content);
-      // Basic validation
-      if (!parsed || typeof parsed !== "object" || !parsed.id || !parsed.timestamp) {
-        console.warn("Invalid event format in queue file:", oldest.path);
-        await fs.unlink(oldest.path).catch(() => {});
-        return null;
-      }
-      // Validate event structure
-      if (!parsed.id || !parsed.timestamp || !parsed.type) {
+      if (!parsed || typeof parsed !== "object" || !parsed.id || !parsed.timestamp || !parsed.type) {
         console.warn("Invalid event format in queue file:", oldest.path);
         await fs.unlink(oldest.path).catch(() => {});
         return null;
@@ -141,9 +135,11 @@ export class OfflineQueue {
       }
     }
 
-    return events.sort((a, b) => 
-      a.timestamp.getTime() - b.timestamp.getTime()
-    );
+    return events.sort((a, b) => {
+      const timeA = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp as unknown as string).getTime();
+      const timeB = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp as unknown as string).getTime();
+      return timeA - timeB;
+    });
   }
 
   /**

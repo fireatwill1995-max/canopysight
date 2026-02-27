@@ -17,7 +17,9 @@ export class YOLODetector {
   private nmsThreshold: number = 0.45; // Non-maximum suppression threshold
   private confidenceThreshold: number;
 
-  constructor(modelPath?: string) {
+  private detectionCounter: number = 0;
+
+  constructor() {
     this.modelManager = new ModelManager();
     this.confidenceThreshold = config.detectionThreshold;
   }
@@ -91,6 +93,12 @@ export class YOLODetector {
       cat: "animal",
       horse: "animal",
       animal: "animal",
+      equipment: "equipment",
+      machinery: "equipment",
+      tool: "equipment",
+      debris: "debris",
+      obstacle: "debris",
+      hazard: "debris",
     };
 
     const types = new Set<DetectionType>();
@@ -101,8 +109,8 @@ export class YOLODetector {
       }
     }
 
-    // Always include our base types
-    return Array.from(new Set([...types, "person", "vehicle", "animal", "unknown"]));
+    // Always include our base types (person, vehicle, animal, equipment, debris, unknown)
+    return Array.from(new Set([...types, "person", "vehicle", "animal", "equipment", "debris", "unknown"]));
   }
 
   /**
@@ -199,6 +207,7 @@ export class YOLODetector {
     const area1 = box1.width * box1.height;
     const area2 = box2.width * box2.height;
     const union = area1 + area2 - intersection;
+    if (union <= 0) return 0;
 
     return intersection / union;
   }
@@ -232,21 +241,22 @@ export class YOLODetector {
         return [];
       }
 
-      // YOLOv8 output format: [batch, num_detections, 85]
-      // 85 = 4 (bbox: center_x, center_y, width, height) + 1 (objectness) + 80 (class scores)
-      // For custom models, adjust based on num_classes
-      const numDetections = outputShape[1] || 0;
-      if (numDetections === 0) {
-        return []; // No detections
-      }
-      
       if (!this.modelInfo) {
         console.warn("Model info not available, using default class count");
         return [];
       }
       
       const numClasses = this.modelInfo.classes.length || 80;
-      const elementsPerDetection = 4 + 1 + numClasses;
+
+      // YOLOv8 output format: [1, 4+num_classes, num_detections]
+      // No objectness score in YOLOv8 — class scores are direct confidences
+      // Dimension 1 = attributes (4 bbox + num_classes), Dimension 2 = num detections
+      const numAttributes = outputShape[1] || 0;
+      const numDetections = outputShape[2] || 0;
+
+      if (numDetections === 0 || numAttributes === 0) {
+        return [];
+      }
 
       // Calculate scale factors for letterboxing
       const scale = Math.min(this.inputSize / originalWidth, this.inputSize / originalHeight);
@@ -257,41 +267,33 @@ export class YOLODetector {
 
       for (let i = 0; i < numDetections; i++) {
         try {
-          const offset = i * elementsPerDetection;
-          
-          // Bounds check
-          if (offset + elementsPerDetection > outputData.length) {
-            break;
-          }
+          // YOLOv8 column-major: element [attr][det] = outputData[attr * numDetections + det]
+          const centerX = outputData[0 * numDetections + i];
+          const centerY = outputData[1 * numDetections + i];
+          const width = outputData[2 * numDetections + i];
+          const height = outputData[3 * numDetections + i];
 
-          // Extract bounding box (normalized center_x, center_y, width, height)
-          const centerX = outputData[offset];
-          const centerY = outputData[offset + 1];
-          const width = outputData[offset + 2];
-          const height = outputData[offset + 3];
-          const objectness = outputData[offset + 4];
-
-          // Validate values
           if (
             !Number.isFinite(centerX) || !Number.isFinite(centerY) ||
-            !Number.isFinite(width) || !Number.isFinite(height) ||
-            !Number.isFinite(objectness) || objectness < 0.25 // Pre-filter low objectness
+            !Number.isFinite(width) || !Number.isFinite(height)
           ) {
             continue;
           }
 
-          // Find class with highest confidence
+          // Find class with highest confidence (no objectness in YOLOv8)
           let maxClassIdx = 0;
-          let maxConfidence = outputData[offset + 5] || 0;
+          let maxConfidence = outputData[(4 + 0) * numDetections + i] || 0;
           for (let j = 1; j < numClasses; j++) {
-            const conf = outputData[offset + 5 + j] || 0;
+            const attrIdx = (4 + j) * numDetections + i;
+            if (attrIdx >= outputData.length) break;
+            const conf = outputData[attrIdx] || 0;
             if (conf > maxConfidence) {
               maxConfidence = conf;
               maxClassIdx = j;
             }
           }
 
-          const confidence = objectness * maxConfidence;
+          const confidence = maxConfidence;
 
           // Filter by confidence threshold
           if (confidence >= this.confidenceThreshold && Number.isFinite(confidence)) {
@@ -318,7 +320,7 @@ export class YOLODetector {
 
             rawDetections.push({
               detection: {
-                id: `${Date.now()}-${i}`,
+                id: `${Date.now()}-${this.detectionCounter++}-${i}`,
                 type: detectionType,
                 confidence: Math.min(1, Math.max(0, confidence)),
                 boundingBox: { x, y, width: w, height: h },
@@ -347,11 +349,11 @@ export class YOLODetector {
    */
   private mapClassNameToType(className: string): DetectionType {
     const lower = className.toLowerCase();
-    
+
     if (lower.includes("person") || lower.includes("pedestrian") || lower.includes("people")) {
       return "person";
     }
-    if (lower.includes("car") || lower.includes("truck") || lower.includes("bus") || 
+    if (lower.includes("car") || lower.includes("truck") || lower.includes("bus") ||
         lower.includes("motorcycle") || lower.includes("bicycle") || lower.includes("vehicle") ||
         lower.includes("train")) {
       return "vehicle";
@@ -360,7 +362,13 @@ export class YOLODetector {
         lower.includes("horse") || lower.includes("bird")) {
       return "animal";
     }
-    
+    if (lower.includes("equipment") || lower.includes("machinery") || lower.includes("tool")) {
+      return "equipment";
+    }
+    if (lower.includes("debris") || lower.includes("obstacle") || lower.includes("hazard")) {
+      return "debris";
+    }
+
     return "unknown";
   }
 

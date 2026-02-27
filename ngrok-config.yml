@@ -1,5 +1,5 @@
 version: "2"
-authtoken: 34Q0BSx0bpNaFBMa1HycbP7RRg5_4A5eg7HyhSDFNWjjVxTLB
+authtoken: # Set via NGROK_AUTHTOKEN env var or ngrok config add-authtoken
 tunnels:
   api:
     addr: 3001

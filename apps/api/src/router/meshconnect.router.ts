@@ -80,22 +80,14 @@ export const meshconnectRouter = router({
 
         const { deviceId, ...configData } = input;
 
-        // Check if config exists
-        const existing = await ctx.prisma.meshConnectConfig.findUnique({
+        const result = await ctx.prisma.meshConnectConfig.upsert({
           where: { deviceId },
+          update: configData,
+          create: {
+            deviceId,
+            ...configData,
+          },
         });
-
-        const result = existing
-          ? await ctx.prisma.meshConnectConfig.update({
-              where: { deviceId },
-              data: configData,
-            })
-          : await ctx.prisma.meshConnectConfig.create({
-              data: {
-                deviceId,
-                ...configData,
-              },
-            });
 
         logger.info("MeshConnect config saved", {
           deviceId: input.deviceId,
@@ -130,7 +122,7 @@ export const meshconnectRouter = router({
         neighborNodes: z.array(z.string()).optional(),
         latency: z.number().optional(),
         throughput: z.number().optional(),
-        lastSyncTime: z.date().optional(),
+        lastSyncTime: z.coerce.date().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -234,19 +226,23 @@ export const meshconnectRouter = router({
           }));
 
         type NodeItem = { nodeId: string; deviceId: string; neighborNodes: string[]; signalStrength?: number; latency?: number };
-        // Build edges from neighbor relationships
         const edges: Array<{ from: string; to: string; signalStrength?: number; latency?: number }> = [];
+        const edgeSet = new Set<string>();
         nodes.forEach((node: NodeItem) => {
           const neighbors = Array.isArray(node.neighborNodes) ? node.neighborNodes : [];
           neighbors.forEach((neighborId: string) => {
             const neighbor = nodes.find((n: NodeItem) => n.nodeId === neighborId);
             if (neighbor) {
-              edges.push({
-                from: node.nodeId,
-                to: neighborId,
-                signalStrength: node.signalStrength ?? undefined,
-                latency: node.latency ?? undefined,
-              });
+              const edgeKey = [node.nodeId, neighborId].sort().join("->");
+              if (!edgeSet.has(edgeKey)) {
+                edgeSet.add(edgeKey);
+                edges.push({
+                  from: node.nodeId,
+                  to: neighborId,
+                  signalStrength: node.signalStrength ?? undefined,
+                  latency: node.latency ?? undefined,
+                });
+              }
             }
           });
         });

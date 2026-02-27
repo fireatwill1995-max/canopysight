@@ -63,33 +63,24 @@ export async function createContext(opts: { req: { headers: Record<string, strin
     ]);
 
   try {
-    return await runWithTimeout(15000);
+    return await runWithTimeout(5000);
   } catch (firstError) {
-    logger.warn("First tRPC context creation failed, retrying", {
+    logger.warn("tRPC context creation failed, retrying once", {
       error: firstError instanceof Error ? firstError.message : String(firstError),
     });
     await new Promise((r) => setTimeout(r, 500));
     try {
-      return await runWithTimeout(12000);
-    } catch (secondError) {
-      logger.warn("Second tRPC context creation failed, retrying once more", {
-        error: secondError instanceof Error ? secondError.message : String(secondError),
+      return await runWithTimeout(5000);
+    } catch (error) {
+      logger.error("Failed to create tRPC context after 2 attempts", error, {
+        errorMessage: error instanceof Error ? error.message : String(error),
       });
-      await new Promise((r) => setTimeout(r, 1000));
-      try {
-        return await runWithTimeout(15000);
-      } catch (error) {
-        logger.error("Failed to create tRPC context after 3 attempts", error, {
-          errorMessage: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-        return {
-          userId: undefined,
-          organizationId: undefined,
-          userRole: undefined,
-          prisma,
-        };
-      }
+      return {
+        userId: undefined,
+        organizationId: undefined,
+        userRole: undefined,
+        prisma,
+      };
     }
   }
 }

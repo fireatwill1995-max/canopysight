@@ -194,6 +194,7 @@ export default function DashboardPage() {
                 onClick={() => refetchSites()}
                 className="min-h-[32px]"
                 title="Refresh sites"
+                aria-label="Refresh sites"
               >
                 🔄
               </Button>

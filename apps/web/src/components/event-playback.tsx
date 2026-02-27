@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
-import { useState } from "react";
 
 interface DetectionEvent {
   id: string;
@@ -17,8 +16,6 @@ interface EventPlaybackProps {
 }
 
 export function EventPlayback({ event }: EventPlaybackProps) {
-  const [playing, setPlaying] = useState(false);
-
   return (
     <Card>
       <CardHeader>
@@ -35,8 +32,7 @@ export function EventPlayback({ event }: EventPlaybackProps) {
                 src={event.videoClipUrl}
                 controls
                 className="w-full h-auto"
-                onPlay={() => setPlaying(true)}
-                onPause={() => setPlaying(false)}
+                
               />
               {/* Overlay bounding box */}
               <div

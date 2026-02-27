@@ -6,10 +6,8 @@ import { SORTTracker } from "../tracking/sort";
  * Calculates risk based on multiple factors
  */
 export class RiskScorer {
-  private tracker: SORTTracker;
-
-  constructor(tracker: SORTTracker) {
-    this.tracker = tracker;
+  constructor(_tracker: SORTTracker) {
+    // tracker reference reserved for future use (e.g., trajectory prediction)
   }
 
   /**
@@ -70,9 +68,11 @@ export class RiskScorer {
   ): number {
     if (!trackedObject?.velocity || zoneIds.length === 0) return 50;
 
-    // If moving toward a critical zone, increase risk
-    // This is simplified - in production, calculate actual direction toward zone
-    return zoneIds.length > 0 ? 75 : 50;
+    const speed = Math.sqrt(trackedObject.velocity.x ** 2 + trackedObject.velocity.y ** 2);
+    if (speed < 0.5) return 50;
+
+    // Scale risk by number of zones breached and object speed
+    return Math.min(100, 60 + zoneIds.length * 10);
   }
 
   private calculateDwellTimeFactor(trackedObject?: TrackedObject): number {

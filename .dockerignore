@@ -39,6 +39,16 @@ scripts/*.py
 *.onnx
 requirements*.txt
 
+# Other projects in parent repo (not needed for Canopy Sight builds)
+FireSafetyPlanning
+Darius
+autotargetaccuser
+windfarm software
+
+# Edge agent models (large binary files)
+apps/edge-agent/models
+apps/edge-agent/scripts
+
 # IDE / misc
 .cursor
 *.md

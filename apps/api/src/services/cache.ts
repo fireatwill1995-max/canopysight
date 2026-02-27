@@ -16,9 +16,10 @@ export interface Cache {
 class MemoryCache implements Cache {
   private cache: Map<string, { value: unknown; expiresAt: number }> = new Map();
   private cleanupInterval: NodeJS.Timeout;
+  private maxSize: number;
 
-  constructor() {
-    // Cleanup expired entries every 5 minutes
+  constructor(maxSize: number = 10000) {
+    this.maxSize = maxSize;
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, 5 * 60 * 1000);
@@ -39,6 +40,10 @@ class MemoryCache implements Cache {
   }
 
   async set(key: string, value: unknown, ttlSeconds: number = 300): Promise<void> {
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) this.cache.delete(oldestKey);
+    }
     const expiresAt = Date.now() + ttlSeconds * 1000;
     this.cache.set(key, { value, expiresAt });
   }
@@ -225,13 +230,13 @@ export const cacheKeys = {
 /**
  * Cache decorator for tRPC procedures
  */
-export function cached<T extends (...args: any[]) => Promise<any>>(
+export function cached<T extends (...args: unknown[]) => Promise<unknown>>(
   keyGenerator: (...args: Parameters<T>) => string,
   ttlSeconds: number = 300
 ) {
   return function (
-    target: any,
-    propertyName: string,
+    _target: unknown,
+    _propertyName: string,
     descriptor: TypedPropertyDescriptor<T>
   ) {
     const method = descriptor.value!;

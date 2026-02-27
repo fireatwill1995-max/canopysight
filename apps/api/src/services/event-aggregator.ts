@@ -7,6 +7,8 @@ import { logger } from "@canopy-sight/config";
  */
 class EventAggregator {
   private aggregationInterval: NodeJS.Timeout | null = null;
+  private dailyInterval: NodeJS.Timeout | null = null;
+  private dailyTimeout: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
 
   /**
@@ -48,6 +50,14 @@ class EventAggregator {
       clearInterval(this.aggregationInterval);
       this.aggregationInterval = null;
     }
+    if (this.dailyTimeout) {
+      clearTimeout(this.dailyTimeout);
+      this.dailyTimeout = null;
+    }
+    if (this.dailyInterval) {
+      clearInterval(this.dailyInterval);
+      this.dailyInterval = null;
+    }
     this.isRunning = false;
     logger.info("Event aggregator stopped");
   }
@@ -59,16 +69,15 @@ class EventAggregator {
     const now = new Date();
     const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
-    let msUntilMidnight = midnight.getTime() - now.getTime();
-    if (msUntilMidnight < 0) msUntilMidnight += 24 * 60 * 60 * 1000;
+    const msUntilMidnight = midnight.getTime() - now.getTime();
 
-    setTimeout(() => {
+    this.dailyTimeout = setTimeout(() => {
       this.runDailyAggregation().catch((err) => {
         logger.warn("Daily aggregation error (non-critical)", {
           error: err instanceof Error ? err.message : String(err),
         });
       });
-      setInterval(() => {
+      this.dailyInterval = setInterval(() => {
         this.runDailyAggregation().catch((err) => {
           logger.warn("Daily aggregation error (non-critical)", {
             error: err instanceof Error ? err.message : String(err),
