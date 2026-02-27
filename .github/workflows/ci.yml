@@ -18,6 +18,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
+      - run: npx prisma generate --schema packages/database/prisma/schema.prisma
       - run: npm run type-check
 
   # Lint: enable once eslint is configured in apps/api and apps/web (e.g. next lint for web, eslint for api)
@@ -42,6 +43,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
+      - run: npx prisma generate --schema packages/database/prisma/schema.prisma
       - run: npm run test
         env:
           SKIP_ENV_VALIDATION: 1

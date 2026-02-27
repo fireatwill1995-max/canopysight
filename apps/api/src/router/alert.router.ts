@@ -8,7 +8,6 @@ import { cacheMiddleware, cacheInvalidation } from "../middleware/cache-middlewa
 
 export const alertRouter = router({
   list: protectedProcedure
-    .use(cacheMiddleware(30)) // Cache for 30 seconds (alerts change frequently)
     .input(
       z.object({
         siteId: z.string().optional(),
@@ -18,6 +17,7 @@ export const alertRouter = router({
         cursor: z.string().optional(),
       })
     )
+    .use(cacheMiddleware(30))
     .query(async ({ ctx, input }) => {
       try {
         const where: {

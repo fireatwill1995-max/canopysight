@@ -8,8 +8,8 @@ import { logger } from "@canopy-sight/config";
 
 export const detectionRouter = router({
   list: protectedProcedure
-    .use(cacheMiddleware(60)) // Cache for 1 minute
     .input(detectionListQuerySchema)
+    .use(cacheMiddleware(60))
     .query(async ({ ctx, input }) => {
     try {
       const where: {
