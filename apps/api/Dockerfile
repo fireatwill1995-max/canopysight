@@ -55,4 +55,4 @@ COPY --from=builder /app/packages /app/packages
 WORKDIR /app/apps/api
 EXPOSE 8080
 
-CMD ["node", "dist/server.js"]
+CMD ["npx", "tsx", "dist/server.js"]
