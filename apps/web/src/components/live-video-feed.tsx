@@ -197,7 +197,7 @@ export function LiveVideoFeed({
     };
   }, [effectiveStreamUrl, simulationMode, useYoutube]);
 
-  /** Draw detections as a thin green box with subtle highlight (no red circle). */
+  /** Draw detections as a skinny outline box only (no fill, no circles). */
   const drawHazardBoxes = (
     ctx: CanvasRenderingContext2D,
     canvasW: number,
@@ -208,9 +208,8 @@ export function LiveVideoFeed({
     if (hazards.length === 0) return;
     const scaleX = canvasW / refW;
     const scaleY = canvasH / refH;
-    const BOX_STROKE = 2;
-    const HIGHLIGHT_FILL = "rgba(34, 197, 94, 0.08)"; // subtle green tint
-    const BOX_STROKE_COLOR = "rgba(34, 197, 94, 0.95)"; // thin green border
+    const BOX_STROKE = 1;
+    const BOX_STROKE_COLOR = "rgba(34, 197, 94, 0.95)";
 
     hazards.forEach((hazard) => {
       const b = hazard.boundingBox;
@@ -219,16 +218,12 @@ export function LiveVideoFeed({
       const w = b.width * scaleX;
       const boxH = b.height * scaleY;
 
-      // 1. Subtle green highlight inside the box
-      ctx.fillStyle = HIGHLIGHT_FILL;
-      ctx.fillRect(x, y, w, boxH);
-
-      // 2. Thin green box around the detection
+      // Skinny outline box only — no fill
       ctx.strokeStyle = BOX_STROKE_COLOR;
       ctx.lineWidth = BOX_STROKE;
       ctx.strokeRect(x, y, w, boxH);
 
-      // 3. Small label above the box (optional, keeps context)
+      // Small label above the box
       const typeLabel = hazard.type === "person" ? "Person" : hazard.type === "vehicle" ? "Vehicle" : hazard.type;
       const labelText = `${typeLabel}${hazard.confidence != null ? ` ${(hazard.confidence * 100).toFixed(0)}%` : ""}`;
       ctx.font = "11px Arial";

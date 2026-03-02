@@ -23,6 +23,7 @@ export default function SettingsPage() {
           )}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">System configuration and preferences</p>
+        <p className="text-xs text-muted-foreground mt-1">Choose a section below to manage notifications, user preferences, API keys, data retention, and exports.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

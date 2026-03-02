@@ -14,10 +14,21 @@ export default function IncidentReconstructionPage() {
   const id = params.id as string;
   const canQuery = useCanUseProtectedTrpc();
 
-  const { data, isLoading, error } = trpc.incident.reconstruction.useQuery(
+  const { data, isLoading, error, refetch } = trpc.incident.reconstruction.useQuery(
     { id, windowMinutes: 30 },
     { enabled: canQuery && !!id, retry: false }
   );
+
+  const { addToast } = useToast();
+  const resolveMutation = trpc.incident.resolve.useMutation({
+    onSuccess: () => {
+      refetch();
+      addToast({ type: "success", title: "Incident resolved", description: "The incident has been marked as resolved." });
+    },
+    onError: (err) => {
+      addToast({ type: "error", title: "Failed to resolve", description: err.message ?? "An error occurred." });
+    },
+  });
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -65,9 +76,14 @@ export default function IncidentReconstructionPage() {
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-red-600">{error?.message ?? "Incident not found"}</p>
-            <Button variant="outline" className="mt-4" onClick={() => router.push("/incidents")}>
-              Back to Incidents
-            </Button>
+            <div className="flex flex-wrap gap-2 justify-center mt-4">
+              <Button variant="outline" onClick={() => refetch()}>
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => router.push("/incidents")}>
+                Back to Incidents
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </main>
@@ -127,6 +143,17 @@ export default function IncidentReconstructionPage() {
                 </p>
               </div>
             </div>
+            {!incident.resolvedAt && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <Button
+                  onClick={() => resolveMutation.mutate({ id })}
+                  disabled={resolveMutation.isPending}
+                  className="min-h-[44px] touch-manipulation"
+                >
+                  {resolveMutation.isPending ? "Resolving…" : "Mark as resolved"}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

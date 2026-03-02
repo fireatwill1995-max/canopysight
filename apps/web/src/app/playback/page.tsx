@@ -38,17 +38,22 @@ export default function PlaybackPage() {
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  const startDt = startDate ? new Date(startDate) : null;
+  const endDt = endDate ? new Date(endDate) : null;
+  const dateRangeValid = startDt && endDt && endDt >= startDt;
+
   const historyQuery = trpc.model.history.useQuery(
     {
       siteId,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: startDt ?? new Date(0),
+      endDate: endDt ?? new Date(),
     },
-    { enabled: canQuery && !!siteId && !simulationOn, retry: false }
+    { enabled: Boolean(canQuery && siteId && !simulationOn && dateRangeValid), retry: false }
   );
 
   const playbackEvents: PlaybackEvent[] = useMemo(() => {
     if (simulationOn) return getMockPlaybackEvents();
+    if (!dateRangeValid || !siteId) return [];
     const detections = historyQuery.data?.series?.detections ?? [];
     return detections.map((d: { id: string; type: string; confidence?: number; timestamp: string; boundingBox?: unknown }) => ({
       id: d.id,
@@ -58,7 +63,7 @@ export default function PlaybackPage() {
       boundingBox: (d.boundingBox as { x: number; y: number; width: number; height: number }) ?? { x: 0, y: 0, width: 0, height: 0 },
       videoClipUrl: undefined,
     }));
-  }, [simulationOn, historyQuery.data]);
+  }, [simulationOn, historyQuery.data, dateRangeValid, siteId]);
 
   const selected = playbackEvents.find((e) => e.id === selectedEventId) ?? null;
 
@@ -139,6 +144,11 @@ export default function PlaybackPage() {
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]"
             />
           </div>
+          {siteId && !dateRangeValid && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 col-span-full">
+              End date must be on or after start date.
+            </p>
+          )}
         </CardContent>
       </Card>
 

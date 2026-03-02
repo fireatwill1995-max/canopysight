@@ -19,8 +19,21 @@ export default function DashboardPage() {
     setSimulationOn(isSimulationMode());
   }, []);
   const mockStats = simulationOn ? getMockDashboardStats() : null;
-  const { data: sites, isLoading: sitesLoading, error: sitesError, refetch: refetchSites } =
+  const { data: sites, isLoading: sitesLoading, error: sitesError, refetch: refetchSites, isFetching: sitesFetching } =
     trpc.site.list.useQuery(undefined, { enabled: canQuery, retry: false });
+  const { data: devicesData } = trpc.device.list.useQuery(
+    {},
+    { enabled: canQuery && !simulationOn, retry: false }
+  );
+  const { data: activeAlertsData } = trpc.alert.list.useQuery(
+    { status: "active", limit: 100 },
+    { enabled: canQuery && !simulationOn, retry: false }
+  );
+  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const { data: detectionStats } = trpc.detection.stats.useQuery(
+    { startDate: last24h, endDate: new Date() },
+    { enabled: canQuery && !simulationOn, retry: false }
+  );
   // Use public ping on the dashboard to avoid noisy 401s when running demo/unauth flows.
   // Admin-only `system.health` is still available elsewhere, but shouldn't spam the console.
   const { isLoading: healthLoading, isError: healthError } = trpc.system.ping.useQuery(undefined, {
@@ -103,12 +116,12 @@ export default function DashboardPage() {
           <CardContent>
             {simulationOn && mockStats ? (
               <p className="text-3xl font-bold text-foreground">{mockStats.sites}</p>
-            ) : healthLoading ? (
-              <Skeleton className="h-9 w-16" />
-            ) : healthError ? (
-              <p className="text-sm text-muted-foreground">N/A</p>
-            ) : (
+            ) : !canQuery ? (
               <p className="text-3xl font-bold text-foreground">—</p>
+            ) : sitesLoading ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="text-3xl font-bold text-foreground">{sites?.length ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -119,17 +132,17 @@ export default function DashboardPage() {
               <span className="text-2xl">📡</span>
               Devices
             </CardTitle>
-            <CardDescription>Active devices</CardDescription>
+            <CardDescription>Total devices</CardDescription>
           </CardHeader>
           <CardContent>
             {simulationOn && mockStats ? (
               <p className="text-3xl font-bold text-foreground">{mockStats.devices}</p>
-            ) : healthLoading ? (
-              <Skeleton className="h-9 w-16" />
-            ) : healthError ? (
-              <p className="text-sm text-muted-foreground">N/A</p>
-            ) : (
+            ) : !canQuery ? (
               <p className="text-3xl font-bold text-foreground">—</p>
+            ) : devicesData === undefined ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="text-3xl font-bold text-foreground">{devicesData?.length ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -145,12 +158,12 @@ export default function DashboardPage() {
           <CardContent>
             {simulationOn && mockStats ? (
               <p className="text-3xl font-bold text-destructive">{mockStats.activeAlerts}</p>
-            ) : healthLoading ? (
-              <Skeleton className="h-9 w-16" />
-            ) : healthError ? (
-              <p className="text-sm text-muted-foreground">N/A</p>
-            ) : (
+            ) : !canQuery ? (
               <p className="text-3xl font-bold text-destructive">—</p>
+            ) : activeAlertsData === undefined ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="text-3xl font-bold text-destructive">{activeAlertsData?.items?.length ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -166,12 +179,12 @@ export default function DashboardPage() {
           <CardContent>
             {simulationOn && mockStats ? (
               <p className="text-3xl font-bold text-foreground">{mockStats.recentEvents}</p>
-            ) : healthLoading ? (
-              <Skeleton className="h-9 w-16" />
-            ) : healthError ? (
-              <p className="text-sm text-muted-foreground">N/A</p>
-            ) : (
+            ) : !canQuery ? (
               <p className="text-3xl font-bold text-foreground">—</p>
+            ) : detectionStats === undefined ? (
+              <Skeleton className="h-9 w-16" />
+            ) : (
+              <p className="text-3xl font-bold text-foreground">{detectionStats?.total ?? 0}</p>
             )}
           </CardContent>
         </Card>
@@ -192,11 +205,12 @@ export default function DashboardPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => refetchSites()}
+                disabled={sitesFetching}
                 className="min-h-[32px]"
                 title="Refresh sites"
                 aria-label="Refresh sites"
               >
-                🔄
+                {sitesFetching ? "…" : "🔄"}
               </Button>
             </div>
           </CardHeader>

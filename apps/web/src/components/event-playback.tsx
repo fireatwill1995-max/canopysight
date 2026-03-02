@@ -34,17 +34,18 @@ export function EventPlayback({ event }: EventPlaybackProps) {
                 className="w-full h-auto"
                 
               />
-              {/* Overlay bounding box */}
+              {/* Skinny outline box — no fill, thin stroke only */}
               <div
-                className="absolute border-2 border-red-500 pointer-events-none"
+                className="absolute pointer-events-none border border-red-500 bg-transparent box-border"
                 style={{
                   left: `${event.boundingBox.x}px`,
                   top: `${event.boundingBox.y}px`,
                   width: `${event.boundingBox.width}px`,
                   height: `${event.boundingBox.height}px`,
+                  borderWidth: 1,
                 }}
               >
-                <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                <div className="absolute -top-6 left-0 bg-red-500/90 text-white text-xs px-2 py-1 rounded border border-red-500">
                   {event.type} ({(event.confidence * 100).toFixed(1)}%)
                 </div>
               </div>

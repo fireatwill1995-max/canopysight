@@ -15,6 +15,8 @@ export default function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "acknowledged" | "resolved">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "severity">("newest");
   const [simulationOn, setSimulationOn] = useState(false);
+  const [pendingAckId, setPendingAckId] = useState<string | null>(null);
+  const [pendingResolveId, setPendingResolveId] = useState<string | null>(null);
   useEffect(() => {
     setSimulationOn(isSimulationMode());
   }, []);
@@ -64,12 +66,20 @@ export default function AlertsPage() {
 
   const handleAcknowledge = (id: string) => {
     if (acknowledgeMutation.isPending || simulationOn) return;
-    acknowledgeMutation.mutate({ id });
+    setPendingAckId(id);
+    acknowledgeMutation.mutate(
+      { id },
+      { onSettled: () => setPendingAckId(null) }
+    );
   };
 
   const handleResolve = (id: string) => {
     if (resolveMutation.isPending || simulationOn) return;
-    resolveMutation.mutate({ id });
+    setPendingResolveId(id);
+    resolveMutation.mutate(
+      { id },
+      { onSettled: () => setPendingResolveId(null) }
+    );
   };
 
   // Filter and sort alerts (type assertion to avoid deep tRPC instantiation)
@@ -262,17 +272,21 @@ export default function AlertsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleAcknowledge(alert.id)}
+                          disabled={simulationOn || pendingAckId === alert.id || pendingResolveId === alert.id}
                           className="border-blue-200 text-blue-700 hover:bg-blue-50 min-h-[44px] touch-manipulation"
+                          title={simulationOn ? "Disabled in simulation mode" : "Mark as acknowledged"}
                         >
-                          Acknowledge
+                          {pendingAckId === alert.id ? "Acknowledging…" : "Acknowledge"}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleResolve(alert.id)}
+                          disabled={simulationOn || pendingResolveId === alert.id || pendingAckId === alert.id}
                           className="border-green-200 text-green-700 hover:bg-green-50 min-h-[44px] touch-manipulation"
+                          title={simulationOn ? "Disabled in simulation mode" : "Mark as resolved"}
                         >
-                          Resolve
+                          {pendingResolveId === alert.id ? "Resolving…" : "Resolve"}
                         </Button>
                       </>
                     )}

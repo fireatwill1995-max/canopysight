@@ -59,15 +59,33 @@ export default function SitesPage() {
   });
 
   const handleCreate = () => {
-    if (!formData.name || formData.latitude === 0 || formData.longitude === 0) {
+    if (!formData.name?.trim()) {
       addToast({
         type: "warning",
-        title: "Missing required fields",
-        description: "Please fill in the site name and provide valid coordinates",
+        title: "Missing required field",
+        description: "Please enter a site name",
       });
       return;
     }
-    createMutation.mutate(formData);
+    const lat = Number(formData.latitude);
+    const lng = Number(formData.longitude);
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      addToast({
+        type: "warning",
+        title: "Invalid latitude",
+        description: "Latitude must be between -90 and 90 (decimal degrees)",
+      });
+      return;
+    }
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      addToast({
+        type: "warning",
+        title: "Invalid longitude",
+        description: "Longitude must be between -180 and 180 (decimal degrees)",
+      });
+      return;
+    }
+    createMutation.mutate({ ...formData, latitude: lat, longitude: lng });
   };
 
   // Filter sites
@@ -235,10 +253,13 @@ export default function SitesPage() {
                   <input
                     type="number"
                     step="any"
-                    value={formData.latitude}
+                    min={-90}
+                    max={90}
+                    value={formData.latitude === 0 ? "" : formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]"
-                    placeholder="0.0"
+                    placeholder="e.g. -33.8688"
+                    title="Decimal degrees, -90 to 90"
                   />
                 </div>
                 <div>
@@ -246,10 +267,13 @@ export default function SitesPage() {
                   <input
                     type="number"
                     step="any"
-                    value={formData.longitude}
+                    min={-180}
+                    max={180}
+                    value={formData.longitude === 0 ? "" : formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px]"
-                    placeholder="0.0"
+                    placeholder="e.g. 151.2093"
+                    title="Decimal degrees, -180 to 180"
                   />
                 </div>
               </div>
