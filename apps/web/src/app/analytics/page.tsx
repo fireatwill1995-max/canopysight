@@ -374,7 +374,23 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Heatmap */}
-          {heatmapData ? (
+          {!filters.siteId ? (
+            <Card className="border-amber-200 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-950/20">
+              <CardHeader>
+                <CardTitle>📍 Heatmap</CardTitle>
+                <CardDescription>Spatial distribution of detections for a site</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="text-4xl mb-3 text-amber-600 dark:text-amber-400">📍</div>
+                  <p className="font-medium text-foreground">Select a site to view the heatmap</p>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                    Choose a site in the filters on the left to load the heatmap and other site-specific analytics.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : heatmapData ? (
             <HeatmapVisualization
               data={heatmapData.data?.map((p: { x: number; y: number; intensity?: number }) => ({
                 x: p.x,
@@ -382,16 +398,17 @@ export default function AnalyticsPage() {
                 intensity: p.intensity || 1,
               })) || []}
             />
-          ) : filters.siteId ? (
+          ) : (
             <Card>
               <CardContent className="p-8">
                 <div className="space-y-4">
                   <Skeleton className="h-64 w-full rounded-lg" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
+                <p className="text-sm text-muted-foreground mt-2">Loading heatmap…</p>
               </CardContent>
             </Card>
-          ) : null}
+          )}
 
           {/* Timeline */}
           {detectionItems.length > 0 && (

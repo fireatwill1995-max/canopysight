@@ -83,6 +83,8 @@ export default function NotificationsPage() {
   });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     channel: "email" as "sms" | "email" | "push" | "webhook",
     severity: undefined as "advisory" | "warning" | "critical" | undefined,
@@ -97,14 +99,19 @@ export default function NotificationsPage() {
   };
 
   const handleToggleActive = (id: string, currentActive: boolean) => {
-    updateMutation.mutate({
-      id,
-      isActive: !currentActive,
-    });
+    setPendingUpdateId(id);
+    updateMutation.mutate(
+      { id, isActive: !currentActive },
+      { onSettled: () => setPendingUpdateId(null) }
+    );
   };
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate({ id });
+    setPendingDeleteId(id);
+    deleteMutation.mutate(
+      { id },
+      { onSettled: () => setPendingDeleteId(null) }
+    );
   };
 
   return (
@@ -178,19 +185,19 @@ export default function NotificationsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleToggleActive(pref.id, pref.isActive)}
-                      disabled={updateMutation.isPending}
+                      disabled={pendingUpdateId === pref.id || pendingDeleteId === pref.id}
                       className="min-h-[44px] touch-manipulation"
                     >
-                      {pref.isActive ? "Disable" : "Enable"}
+                      {pendingUpdateId === pref.id ? "Updating…" : pref.isActive ? "Disable" : "Enable"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(pref.id)}
-                      disabled={deleteMutation.isPending}
+                      disabled={pendingDeleteId === pref.id || pendingUpdateId === pref.id}
                       className="min-h-[44px] touch-manipulation border-red-200 text-red-700 hover:bg-red-50"
                     >
-                      Delete
+                      {pendingDeleteId === pref.id ? "Deleting…" : "Delete"}
                     </Button>
                   </div>
                 </div>

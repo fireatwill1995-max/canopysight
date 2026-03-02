@@ -29,13 +29,14 @@ export default function ApiKeysSettingsPage() {
             This demo build intentionally does not expose or edit API keys from the browser. Instead, keys are managed
             in your development or deployment environment as documented in the setup guide.
           </p>
-          <div className="text-xs text-gray-500">
-            See{" "}
-            <Link href="/SETUP_ENV" className="underline">
-              `SETUP_ENV.md`
-            </Link>{" "}
-            in the repo for a full list of required variables.
-          </div>
+          <p className="text-xs text-gray-500">
+            See <code className="bg-muted px-1 rounded">SETUP_ENV.md</code> or <code className="bg-muted px-1 rounded">DEPLOYMENT.md</code> in the repository for a full list of required environment variables.
+          </p>
+          <Link href="/settings">
+            <Button variant="outline" size="sm" className="mt-2 min-h-[36px]">
+              ← Back to Settings
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 

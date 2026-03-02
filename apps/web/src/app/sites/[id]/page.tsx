@@ -374,7 +374,7 @@ export default function SiteDetailPage() {
                 <div className="space-y-3">
                   {(zones as ZoneEntry[]).map((zone) => (
                     <div key={zone.id} className="p-4 border rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <h3 className="font-semibold">{zone.name}</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -384,15 +384,29 @@ export default function SiteDetailPage() {
                             Points: {(zone.points as Array<{ x: number; y: number }>)?.length || 0}
                           </p>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded text-xs font-medium ${
-                            zone.isActive
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                          }`}
-                        >
-                          {zone.isActive ? "✅ Active" : "❌ Inactive"}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              zone.isActive
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {zone.isActive ? "✅ Active" : "❌ Inactive"}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTab("zones");
+                              openEditZone(zone);
+                            }}
+                            className="min-h-[32px]"
+                          >
+                            Edit
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
