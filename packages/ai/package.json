@@ -9,7 +9,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.20.0",
+    "@anthropic-ai/sdk": "^0.80.0",
     "@langchain/anthropic": "^0.3.0",
     "@langchain/core": "^0.3.40",
     "@langchain/langgraph": "^0.2.0",
