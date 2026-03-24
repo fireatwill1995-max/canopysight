@@ -18,6 +18,7 @@ export class InputSanitizer {
     }
 
     // Remove null bytes and control characters
+    // eslint-disable-next-line no-control-regex -- intentional removal of control chars
     let sanitized = input.replace(/[\x00-\x1F\x7F]/g, "");
 
     // Trim and limit length
@@ -112,7 +113,7 @@ export class InputSanitizer {
     return input.map((item, index) => {
       try {
         return itemValidator(item);
-      } catch (error) {
+      } catch {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Invalid array item at index ${index}`,

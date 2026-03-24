@@ -13,6 +13,7 @@ import { logger } from "@canopy-sight/config";
 import { serveOpenAPISpec, serveSwaggerUI } from "./middleware/openapi";
 import { setWsServerRef } from "./services/ws-server-ref";
 import { alertDispatcher } from "./services/alert-dispatcher";
+import { createHealthRouter } from "./router/health.router";
 
 setupSentry();
 
@@ -77,70 +78,11 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Health check endpoint - before tRPC to avoid context creation overhead
-app.get("/health", async (req, res) => {
-  // Always return JSON, even on errors
-  res.setHeader("Content-Type", "application/json");
-  
-  try {
-    type HealthStatus = "ok" | "degraded" | "error";
-    const health: {
-      status: HealthStatus;
-      timestamp: string;
-      uptime: number;
-      memory: { used: number; total: number; rss: number };
-      database: "connected" | "disconnected" | "unknown";
-    } = {
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-        rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
-      },
-      database: "unknown",
-    };
-
-    // Check database connection with timeout
-    try {
-      const { prisma } = await import("@canopy-sight/database");
-      
-      let timeoutId: NodeJS.Timeout;
-      const dbCheck = Promise.race([
-        prisma.$queryRaw`SELECT 1`,
-        new Promise((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error("Database check timeout")), 2000);
-        }),
-      ]);
-      
-      await dbCheck;
-      clearTimeout(timeoutId!);
-      health.database = "connected";
-    } catch (dbError) {
-      // Database check failed - mark as disconnected but don't fail health check
-      health.database = "disconnected";
-      health.status = "degraded";
-      logger.debug("Database health check failed", {
-        error: dbError instanceof Error ? dbError.message : String(dbError),
-      });
-    }
-
-    const statusCode = health.status === "ok" ? 200 : 503;
-    res.status(statusCode).json(health);
-  } catch (error) {
-    // Catch any unexpected errors
-    logger.error("Health check failed", error);
-    res.status(500).json({
-      status: "error",
-      message: "Health check failed",
-      timestamp: new Date().toISOString(),
-      error: process.env.NODE_ENV === "development" 
-        ? (error instanceof Error ? error.message : String(error))
-        : undefined,
-    });
-  }
-});
+// Health check routes - before tRPC to avoid context creation overhead
+// GET /health         — basic liveness
+// GET /health/ready   — readiness probe (DB + Redis)
+// GET /health/detailed — full system status (requires x-health-key header)
+app.use("/health", createHealthRouter());
 
 // tRPC middleware with error handling
 app.use(

@@ -4,43 +4,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { httpBatchLink } from "@trpc/client";
-import { isDemoMode, getDemoUser } from "@/lib/demo-auth";
+import { getDemoUser } from "@/lib/demo-auth";
 import { ToastProvider } from "@canopy-sight/ui";
-
-function getTrpcUrl() {
-  // If we're accessing via ngrok, use relative path to proxy through Next.js
-  // Otherwise use the configured API URL
-  if (typeof window !== "undefined" && window.location.hostname.includes("ngrok")) {
-    // Use relative path - Next.js will proxy to local API
-    return "/api-proxy/trpc";
-  }
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const trimmed = base.replace(/\/+$/, "");
-  return trimmed.endsWith("/trpc") ? trimmed : `${trimmed}/trpc`;
-}
+import { getTrpcUrl } from "@/lib/api-config";
+import { defaultQueryOptions } from "@/lib/query-config";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: (failureCount, error: unknown) => {
-              // Don't retry on connection refused errors
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              if (errorMessage.includes("Failed to fetch") || 
-                  errorMessage.includes("ERR_CONNECTION_REFUSED")) {
-                return false;
-              }
-              return failureCount < 1;
-            },
-            refetchOnWindowFocus: false,
-            staleTime: 5 * 60 * 1000,
-          },
-          mutations: {
-            retry: false,
-          },
-        },
+        defaultOptions: defaultQueryOptions,
       })
   );
   const trpcClient = useMemo(

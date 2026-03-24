@@ -38,7 +38,7 @@ export function ServerStatus() {
         } else {
           setApiStatus("offline");
         }
-      } catch (error) {
+      } catch {
         // Network errors or timeouts
         setApiStatus("offline");
       }

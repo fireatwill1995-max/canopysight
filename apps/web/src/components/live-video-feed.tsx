@@ -148,7 +148,7 @@ export function LiveVideoFeed({
                 "HLS (.m3u8) stream not supported in this browser. Try Chrome or Firefox with a recent version."
               );
             }
-          } catch (e) {
+          } catch {
             if (!aborted) {
               setError(
                 streamErrorMessage(effectiveStreamUrl, null) +
@@ -311,6 +311,8 @@ export function LiveVideoFeed({
       video.removeEventListener("loadeddata", drawZonesAndHazards);
       clearInterval(interval);
     };
+    // drawZonesAndHazards is recreated when zones/hazards change via closure; listing it would retrigger every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zones, showZones, hazards, hazardRefWidth, hazardRefHeight, useYoutube]);
 
   const getZoneColor = (type: string): string => {

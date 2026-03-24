@@ -18,7 +18,7 @@ export async function GET() {
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
-  } catch (error) {
+  } catch {
     // If icon.svg doesn't exist, return 204 No Content (no favicon)
     return new NextResponse(null, { status: 204 });
   }

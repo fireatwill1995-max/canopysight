@@ -1,6 +1,6 @@
 # Build Next.js web app for Fly.io (monorepo: build from repo root)
 # Build context MUST be repo root: docker build -f apps/web/Dockerfile .
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 
 # ---- Dependencies: copy all workspace package.json so npm ci can link ----
@@ -33,7 +33,11 @@ WORKDIR /app/apps/web
 RUN npm run build
 
 # ---- Runner: minimal image with standalone server ----
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
+
+RUN addgroup -g 1001 -S canopy && \
+    adduser -S canopy -u 1001 -G canopy
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
@@ -47,6 +51,10 @@ RUN if [ -f apps/web/server.js ]; then cp apps/web/server.js server.js; fi
 # .next (BUILD_ID, static, etc.) - server looks for it in cwd
 COPY --from=builder /app/apps/web/.next ./.next
 COPY --from=builder /app/apps/web/public ./public
+
+RUN chown -R canopy:canopy /app
+
+USER canopy
 
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=3 \

@@ -56,7 +56,7 @@ export class AdvancedAnalytics {
         take: 100, // Sample for analysis
       });
 
-      const analysisPrompt = `Analyze these rail safety detection patterns:
+      const _analysisPrompt = `Analyze these rail safety detection patterns:
 ${JSON.stringify(patterns, null, 2)}
 
 Anomalies detected: ${anomalies.length}
@@ -67,7 +67,7 @@ Provide:
 3. Explanation of anomalies`;
 
       const chain = this.langchain.createAnomalyDetectionChain();
-      const analysis = await chain.invoke({ events: JSON.stringify(events) });
+      const _analysis = await chain.invoke({ events: JSON.stringify(events) });
 
       return {
         patterns: patterns.map((p) => ({
@@ -117,14 +117,14 @@ Provide:
 
       // Use predictive chain
       const chain = this.langchain.createPredictiveChain();
-      const prediction = await chain.invoke({
+      const predictionResult = await chain.invoke({
         events: JSON.stringify(events),
         patterns: JSON.stringify(await this.vectorSearch.findPatterns(organizationId, { start: startDate, end: endDate })),
         sites: JSON.stringify(await this.prisma.site.findMany({ where: { organizationId } })),
       });
 
       // Parse prediction (would use structured output in production)
-      return this.parsePredictions(prediction);
+      return this.parsePredictions(predictionResult);
     } catch (error) {
       console.error("Error generating predictive alerts:", error);
       return [];
@@ -143,7 +143,7 @@ Provide:
   /**
    * Parse AI predictions into structured format
    */
-  private parsePredictions(prediction: string): Array<{
+  private parsePredictions(_prediction: string): Array<{
     type: "time_based" | "location_based" | "pattern_based";
     message: string;
     confidence: number;

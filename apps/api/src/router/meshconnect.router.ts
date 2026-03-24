@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import {
-  createMeshConnectConfigSchema,
-  updateMeshConnectConfigSchema,
-} from "@canopy-sight/validators";
+import { createMeshConnectConfigSchema } from "@canopy-sight/validators";
 import { logger } from "@canopy-sight/config";
 
 export const meshconnectRouter = router({

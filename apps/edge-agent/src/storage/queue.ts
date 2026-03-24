@@ -166,7 +166,7 @@ export class OfflineQueue {
           })
       );
       return fileStats;
-    } catch (error) {
+    } catch {
       return [];
     }
   }

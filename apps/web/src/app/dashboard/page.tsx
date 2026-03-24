@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
-import { StatsSkeleton, CardSkeleton, SiteCardSkeleton, Skeleton, PageSkeleton } from "@canopy-sight/ui";
+import { SiteCardSkeleton, Skeleton, PageSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import { LiveAlertFeed } from "@/components/live-alert-feed";
 import Link from "next/link";
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   );
   // Use public ping on the dashboard to avoid noisy 401s when running demo/unauth flows.
   // Admin-only `system.health` is still available elsewhere, but shouldn't spam the console.
-  const { isLoading: healthLoading, isError: healthError } = trpc.system.ping.useQuery(undefined, {
+  trpc.system.ping.useQuery(undefined, {
     retry: false,
     refetchInterval: 30000,
   });

@@ -1,7 +1,5 @@
 import * as ort from "onnxruntime-node";
 import * as fs from "fs/promises";
-import * as path from "path";
-import { config } from "../config";
 
 /**
  * Model Manager for YOLO models

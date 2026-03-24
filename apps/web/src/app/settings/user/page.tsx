@@ -31,7 +31,7 @@ export default function UserSettingsPage() {
         const parsed = JSON.parse(raw) as Partial<UserSettings>;
         setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       }
-    } catch (err) {
+    } catch {
       // Silently use defaults if localStorage fails
     }
   }, []);
@@ -47,7 +47,7 @@ export default function UserSettingsPage() {
         title: "Preferences saved",
         description: "Your personal preferences have been updated for this browser.",
       });
-    } catch (err) {
+    } catch {
       addToast({
         type: "error",
         title: "Unable to save",
@@ -90,7 +90,7 @@ export default function UserSettingsPage() {
             <option value="/analytics">Analytics</option>
           </select>
           <p className="text-xs text-gray-500">
-            A future iteration can use this to redirect immediately after demo sign-in.
+            After signing in as demo admin, you will start on this page.
           </p>
         </CardContent>
       </Card>

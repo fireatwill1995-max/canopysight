@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-const baseConfig = require("@canopy-sight/ui/tailwind.config");
+const path = require("path");
+const baseConfig = require(path.resolve(__dirname, "../../packages/ui/tailwind.config.js"));
 
 module.exports = {
   ...baseConfig,

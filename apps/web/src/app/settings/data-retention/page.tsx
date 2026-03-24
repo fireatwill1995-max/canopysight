@@ -31,7 +31,7 @@ export default function DataRetentionSettingsPage() {
         const parsed = JSON.parse(raw) as Partial<DataRetentionSettings>;
         setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       }
-    } catch (err) {
+    } catch {
       // Silently use defaults if localStorage fails
       // This is expected in some browser configurations
     }
@@ -48,7 +48,7 @@ export default function DataRetentionSettingsPage() {
         title: "Retention updated",
         description: "Retention preferences saved for this demo environment.",
       });
-    } catch (err) {
+    } catch {
       addToast({
         type: "error",
         title: "Unable to save",

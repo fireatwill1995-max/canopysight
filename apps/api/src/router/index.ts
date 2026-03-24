@@ -12,6 +12,10 @@ import { incidentRouter } from "./incident.router";
 import { modelRouter } from "./model.router";
 import { ingestionRouter } from "./ingestion.router";
 import { meshconnectRouter } from "./meshconnect.router";
+import { fileRouter } from "./file.router";
+import { jobRouter } from "./job.router";
+import { projectRouter } from "./project.router";
+import { missionRouter } from "./mission.router";
 
 export const appRouter = router({
   site: siteRouter,
@@ -27,6 +31,10 @@ export const appRouter = router({
   model: modelRouter,
   ingestion: ingestionRouter,
   meshconnect: meshconnectRouter,
+  file: fileRouter,
+  job: jobRouter,
+  project: projectRouter,
+  mission: missionRouter,
 });
 
 export type AppRouter = typeof appRouter;

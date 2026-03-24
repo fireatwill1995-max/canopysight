@@ -88,7 +88,7 @@ export class RiskScorer {
 
     // More zones breached = higher risk
     // Critical zones (exclusion) have higher weight
-    let factor = zoneIds.length * 25;
+    const factor = zoneIds.length * 25;
     return Math.min(100, factor);
   }
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
-import { DetailPageSkeleton, Skeleton } from "@canopy-sight/ui";
+import { DetailPageSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";

@@ -1,10 +1,32 @@
 {
-  "extends": "@canopy-sight/config/typescript/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "target": "ES2017",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+      "@canopy-sight/ui": ["../../packages/ui/src/index.ts"],
+      "@canopy-sight/ui/*": ["../../packages/ui/src/*"],
+      "@canopy-sight/auth": ["../../packages/auth/src/index.ts"],
+      "@canopy-sight/api": ["../../apps/api/src/index.ts"],
+      "@canopy-sight/validators": ["../../packages/validators/src/index.ts"],
+      "@canopy-sight/config": ["../../packages/config/src/index.ts"],
+      "@canopy-sight/database": ["../../packages/database/src/index.ts"],
+      "@canopy-sight/ai": ["../../packages/ai/src/index.ts"]
+    },
+    "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

@@ -1,4 +1,4 @@
-import { getCache, cacheKeys } from "../services/cache";
+import { getCache } from "../services/cache";
 import { logger } from "@canopy-sight/config";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC middleware generics are too complex to type standalone
@@ -54,8 +54,8 @@ export function cacheMiddleware(ttlSeconds: number = 300): any {
  * Invalidate cache for a specific pattern
  */
 export async function invalidateCache(pattern: string): Promise<void> {
-  const cache = getCache();
-  
+  const _cache = getCache();
+
   // For Redis, we could use pattern matching
   // For memory cache, we need to track keys
   // This is a simplified version

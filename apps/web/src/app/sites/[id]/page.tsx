@@ -7,7 +7,6 @@ import { useToast } from "@canopy-sight/ui";
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   isSimulationMode,
   setSimulationMode,

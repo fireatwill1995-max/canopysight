@@ -12,6 +12,8 @@ export default function SignInPage() {
       sessionStorage.setItem("demo_user_id", "demo-user-123");
       sessionStorage.setItem("demo_organization_id", "demo-org-123");
       sessionStorage.setItem("demo_user_role", "admin");
+      // Set cookie so server-side redirect (e.g. root page) keeps user on dashboard on refresh
+      document.cookie = "demo_mode=true; path=/; max-age=604800; SameSite=Lax";
       router.push("/dashboard");
     } catch {
       // non-critical

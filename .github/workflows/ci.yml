@@ -1,4 +1,4 @@
-# CI: type-check and lint (apps only) on push/PR
+# CI: type-check, lint, and test on push/PR
 name: CI
 
 on:
@@ -15,23 +15,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
       - run: npm ci
       - run: npx prisma generate --schema packages/database/prisma/schema.prisma
       - run: npm run type-check
 
-  # Lint: enable once eslint is configured in apps/api and apps/web (e.g. next lint for web, eslint for api)
-  # lint:
-  #   name: Lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with: { node-version: "20", cache: "npm" }
-  #     - run: npm ci
-  #     - run: cd apps/api && npm run lint
-  #     - run: cd apps/web && npm run lint
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npx prisma generate --schema packages/database/prisma/schema.prisma
+      - run: npm run lint
 
   test:
     name: Test
@@ -40,10 +41,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
+      - name: Cache .next
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/web/**/*.ts', 'apps/web/**/*.tsx') }}
+          restore-keys: nextjs-${{ runner.os }}-
       - run: npm ci
       - run: npx prisma generate --schema packages/database/prisma/schema.prisma
-      - run: npm run test
+      - name: Run tests with coverage
+        run: npm run test:coverage
         env:
           SKIP_ENV_VALIDATION: 1
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage
+          path: coverage/
+          retention-days: 14

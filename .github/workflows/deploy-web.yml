@@ -1,0 +1,63 @@
+# Deploy Canopy Sight Web to Fly.io on push to main
+# Requires: FLY_API_TOKEN secret in GitHub repo settings
+name: Deploy Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Web to Fly.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build --workspace=@canopy-sight/web
+        env:
+          NEXT_PUBLIC_API_URL: https://canopy-sight-api.fly.dev
+          NODE_ENV: production
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: |
+          set -e
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN secret is not set. Add it in repo Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          flyctl deploy . --config apps/web/fly.toml --dockerfile apps/web/Dockerfile --remote-only \
+            --build-arg NEXT_PUBLIC_API_URL=https://canopy-sight-api.fly.dev
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Health check
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://canopy-sight-web.fly.dev/ || true)
+          if [ "$STATUS" = "200" ]; then
+            echo "Health check passed"
+          else
+            echo "::warning::Health check returned status $STATUS"
+          fi

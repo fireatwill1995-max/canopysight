@@ -199,13 +199,13 @@ For each: ensure every button has a handler, loading state, and error/success fe
 - [x] Detection: skinny outline box (event-playback, live-video-feed).
 - [x] Dashboard: real stats when not simulation (sites, devices, active alerts, recent events); refresh loading state.
 - [x] Sites: create validation (name, lat/long ranges); placeholders for coordinates.
-- [ ] Site detail: zone edit from overview (optional); zone validation.
+- [x] Site detail: zone edit from Overview (Edit button switches to Zones tab + opens edit modal).
 - [ ] Devices: create/delete already have loading; validation present.
 - [x] Alerts: per-row loading for acknowledge/resolve; simulation disabled with tooltip.
 - [x] Incidents: incident detail Resolve button + loading; error state Retry; success/error toasts.
 - [x] Playback: date validation (end >= start); invalid range message; empty events when invalid.
-- [ ] Analytics: filter/site requirement message; empty/loading states.
-- [x] Settings: guidance text on root; sub-pages exist.
+- [x] Analytics: site-required message when no site selected; heatmap loading state.
+- [x] Settings: guidance text on root; sub-pages have handlers and feedback; notifications per-row loading; api-keys doc link fixed.
 - [x] Run tests; fix failures (all 19 tests pass).
 - [x] Build (turbo build succeeds).
 - [ ] Deploy to Fly.io (use existing workflow; verify after deploy).

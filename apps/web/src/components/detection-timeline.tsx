@@ -16,7 +16,7 @@ interface DetectionTimelineProps {
   endDate: Date;
 }
 
-export function DetectionTimeline({ events, startDate, endDate }: DetectionTimelineProps) {
+export function DetectionTimeline({ events, startDate: _startDate, endDate: _endDate }: DetectionTimelineProps) {
   const groupedEvents = useMemo(() => {
     const groups: Map<string, DetectionEvent[]> = new Map();
 

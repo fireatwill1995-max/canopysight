@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 export function ConnectionStatus() {
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
   const [showWarning, setShowWarning] = useState(false);
-  const { connected: wsConnected } = useWebSocket();
+  useWebSocket(); // connected state available for future UI
 
   // Check API connection - only check once, don't spam
   const { isError, isSuccess, isLoading } = trpc.system.ping.useQuery(undefined, {

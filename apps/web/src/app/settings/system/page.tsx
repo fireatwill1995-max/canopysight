@@ -33,7 +33,7 @@ export default function SystemSettingsPage() {
         const parsed = JSON.parse(raw) as Partial<SystemSettings>;
         setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       }
-    } catch (err) {
+    } catch {
       // Silently use defaults if localStorage fails
     }
   }, []);
@@ -49,7 +49,7 @@ export default function SystemSettingsPage() {
         title: "Settings saved",
         description: "System configuration has been updated locally for this browser.",
       });
-    } catch (err) {
+    } catch {
       addToast({
         type: "error",
         title: "Unable to save",

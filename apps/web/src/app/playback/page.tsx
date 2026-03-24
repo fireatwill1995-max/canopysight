@@ -19,7 +19,7 @@ type PlaybackEvent = {
 };
 
 export default function PlaybackPage() {
-  const { addToast } = useToast();
+  const { addToast: _addToast } = useToast();
   const canQuery = useCanUseProtectedTrpc();
   const [simulationOn, setSimulationOn] = useState(false);
   useEffect(() => {

@@ -45,10 +45,10 @@ export function ZoneEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [_isDrawing, setIsDrawing] = useState(false);
   const [zoneName, setZoneName] = useState("");
   const [zoneType, setZoneType] = useState<"crossing" | "approach" | "exclusion" | "custom">("exclusion");
-  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [_selectedZone, _setSelectedZone] = useState<string | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   const youtubeId = streamUrl ? getYoutubeVideoId(streamUrl) : null;
@@ -84,6 +84,8 @@ export function ZoneEditor({
       const pts = points.map((p) => ({ x: (p.x / refWidth) * w, y: (p.y / refHeight) * h }));
       drawPolygon(ctx, pts, "#3b82f6", false);
     }
+    // drawPolygon/drawZones are stable by closure; deps capture data that drives the draw
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, existingZones, imageUrl, refWidth, refHeight, containerSize]);
 
   // When showing stream, redraw when container resizes (e.g. tab switch) so overlay stays aligned

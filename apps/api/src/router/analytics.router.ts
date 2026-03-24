@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/trpc";
 import {
   heatmapQuerySchema,
@@ -8,6 +7,7 @@ import {
 } from "@canopy-sight/validators";
 import { TRPCError } from "@trpc/server";
 import { logger } from "@canopy-sight/config";
+import { generateSafetyReport } from "@canopy-sight/ai";
 
 export const analyticsRouter = router({
   heatmap: protectedProcedure.input(heatmapQuerySchema).query(async ({ ctx, input }) => {
@@ -334,4 +334,49 @@ export const analyticsRouter = router({
       });
     }
   }),
+
+  generateReport: protectedProcedure
+    .input(occupancyByZoneSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const events = await ctx.prisma.detectionEvent.findMany({
+          where: {
+            siteId: input.siteId,
+            organizationId: ctx.organizationId,
+            timestamp: {
+              gte: input.startDate,
+              lte: input.endDate,
+            },
+          },
+          select: {
+            id: true,
+            type: true,
+            timestamp: true,
+            confidence: true,
+            riskScore: true,
+          },
+          orderBy: { timestamp: "asc" },
+          take: 5000,
+        });
+        const report = await generateSafetyReport({
+          siteId: input.siteId,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          events: events.map((e: { id: string; type: string; timestamp: Date; confidence: number | null; riskScore: number | null }) => ({
+            id: e.id,
+            type: e.type,
+            timestamp: e.timestamp,
+            confidence: e.confidence ?? 0,
+            riskScore: e.riskScore ?? undefined,
+          })),
+        });
+        return { report };
+      } catch (error) {
+        logger.error("Error generating safety report", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to generate report",
+        });
+      }
+    }),
 });

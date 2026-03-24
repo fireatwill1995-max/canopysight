@@ -74,7 +74,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <SimulationBanner />
             <Navigation />
             <ServerStatus />
-            {children}
+            <main id="main-content" className="flex-1" role="main" aria-label="Main content" tabIndex={-1}>
+              {children}
+            </main>
             <ConnectionStatus />
           </Providers>
         </ErrorBoundary>

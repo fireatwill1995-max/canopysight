@@ -119,10 +119,11 @@ export default function AlertsPage() {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case "oldest":
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "severity":
+        case "severity": {
           const severityOrder = { critical: 3, warning: 2, advisory: 1 };
           return (severityOrder[b.severity as keyof typeof severityOrder] || 0) -
                  (severityOrder[a.severity as keyof typeof severityOrder] || 0);
+        }
         default:
           return 0;
       }
@@ -182,7 +183,7 @@ export default function AlertsPage() {
           <div className="flex flex-wrap gap-2">
             <select
               value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value as any)}
+              onChange={(e) => setSeverityFilter(e.target.value as "all" | "critical" | "warning" | "advisory")}
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px] text-sm"
             >
               <option value="all">All Severities</option>
@@ -193,7 +194,7 @@ export default function AlertsPage() {
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "acknowledged" | "resolved")}
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px] text-sm"
             >
               <option value="all">All Statuses</option>
@@ -204,7 +205,7 @@ export default function AlertsPage() {
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "newest" | "oldest" | "severity")}
               className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[44px] text-sm"
             >
               <option value="newest">Newest First</option>

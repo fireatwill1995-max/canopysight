@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
-import { Button, Skeleton } from "@canopy-sight/ui";
+import { Button } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 
 export interface CameraConfigItem {

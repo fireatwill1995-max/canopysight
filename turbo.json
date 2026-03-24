@@ -10,16 +10,16 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "type-check": {
-      "dependsOn": ["^type-check"]
-    },
-    "test": {
-      "dependsOn": ["^build"]
-    },
+    "lint": {},
+    "type-check": {},
+    "test": {},
     "clean": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:push": {
       "cache": false
     }
   }

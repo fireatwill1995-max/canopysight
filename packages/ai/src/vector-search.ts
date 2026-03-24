@@ -33,8 +33,8 @@ export class VectorSearch {
    */
   async findSimilarEvents(
     eventId: string,
-    limit: number = 10,
-    threshold: number = 0.8
+    _limit: number = 10,
+    _threshold: number = 0.8
   ): Promise<Array<{ id: string; similarity: number }>> {
     // This would use pgvector's cosine similarity
     // SELECT id, 1 - (embedding <=> (SELECT embedding FROM "DetectionEvent" WHERE id = $1)) as similarity

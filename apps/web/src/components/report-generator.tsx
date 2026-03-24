@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
-import { useState } from "react";
+import { useToast } from "@canopy-sight/ui";
+import { trpc } from "@/lib/trpc/client";
 
 interface ReportGeneratorProps {
   siteId?: string;
@@ -11,22 +12,45 @@ interface ReportGeneratorProps {
 }
 
 export function ReportGenerator({ siteId, startDate, endDate }: ReportGeneratorProps) {
-  const [generating, setGenerating] = useState(false);
-  const [report, setReport] = useState<string | null>(null);
+  const { addToast } = useToast();
+  const generateMutation = trpc.analytics.generateReport.useMutation({
+    onSuccess: (_data) => {
+      addToast({
+        type: "success",
+        title: "Report generated",
+        description: "Your safety report is ready.",
+      });
+    },
+    onError: (error) => {
+      addToast({
+        type: "error",
+        title: "Report failed",
+        description: error.message || "Failed to generate report. Please try again.",
+      });
+    },
+  });
 
-  const generateReport = async () => {
-    setGenerating(true);
-    try {
-      // This would call a tRPC endpoint for report generation
-      // For now, placeholder
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setReport("Report generation would happen here via AI");
-    } catch (error) {
-      // Error handling - in production would show toast
-      setReport("Error generating report. Please try again.");
-    } finally {
-      setGenerating(false);
+  const report = generateMutation.data?.report ?? null;
+  const generating = generateMutation.isPending;
+
+  const handleGenerate = () => {
+    if (!siteId) {
+      addToast({
+        type: "warning",
+        title: "Select a site",
+        description: "Please select a site to generate a report for.",
+      });
+      return;
     }
+    if (endDate < startDate) {
+      addToast({
+        type: "warning",
+        title: "Invalid date range",
+        description: "End date must be on or after start date.",
+      });
+      return;
+    }
+    generateMutation.mutate({ siteId, startDate, endDate });
   };
 
   return (
@@ -36,27 +60,36 @@ export function ReportGenerator({ siteId, startDate, endDate }: ReportGeneratorP
         <CardDescription>AI-generated compliance and safety report</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-gray-600">
-          <p>Period: {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</p>
-          {siteId && <p>Site: {siteId}</p>}
+        <div className="text-sm text-muted-foreground">
+          <p>Period: {startDate.toLocaleDateString()} – {endDate.toLocaleDateString()}</p>
+          {siteId ? <p>Site: {siteId}</p> : <p>Select a site in the filters above to generate a report.</p>}
         </div>
 
-        <Button onClick={generateReport} disabled={generating} className="w-full">
-          {generating ? "Generating..." : "Generate Report"}
+        <Button
+          onClick={handleGenerate}
+          disabled={generating || !siteId}
+          className="w-full min-h-[44px] touch-manipulation"
+        >
+          {generating ? "Generating…" : "Generate Report"}
         </Button>
 
         {report && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded border text-gray-900 dark:text-gray-100">
-            <h3 className="font-semibold mb-2">Generated Report</h3>
-            <pre className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-200">{report}</pre>
-            <Button variant="outline" className="mt-4" onClick={() => {
-              const blob = new Blob([report], { type: "text/plain" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `report-${Date.now()}.txt`;
-              a.click();
-            }}>
+          <div className="mt-4 p-4 bg-muted/50 dark:bg-muted/20 rounded-lg border border-border">
+            <h3 className="font-semibold mb-2 text-foreground">Generated Report</h3>
+            <pre className="text-sm whitespace-pre-wrap text-foreground/90 max-h-[400px] overflow-y-auto">{report}</pre>
+            <Button
+              variant="outline"
+              className="mt-4 min-h-[44px] touch-manipulation"
+              onClick={() => {
+                const blob = new Blob([report], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `safety-report-${startDate.toISOString().slice(0, 10)}-${endDate.toISOString().slice(0, 10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
               Download Report
             </Button>
           </div>

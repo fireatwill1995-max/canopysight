@@ -3,10 +3,11 @@
  * This ensures the health endpoint works through ngrok
  */
 import { NextRequest, NextResponse } from "next/server";
+import { getApiBaseUrl } from "@/lib/api-config";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const apiUrl = getApiBaseUrl();
     const healthUrl = `${apiUrl}/health`;
 
     const controller = new AbortController();
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
           "Cache-Control": "no-cache",
         },
       });
-    } catch (fetchError) {
+    } catch {
       clearTimeout(timeoutId);
       
       // If API server is not running, return degraded status

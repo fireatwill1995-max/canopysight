@@ -53,4 +53,5 @@ export function clearDemoMode(): void {
   sessionStorage.removeItem("demo_user_id");
   sessionStorage.removeItem("demo_organization_id");
   sessionStorage.removeItem("demo_user_role");
+  document.cookie = "demo_mode=; path=/; max-age=0; SameSite=Lax";
 }

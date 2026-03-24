@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canopy Sight™ — Development Plan & Funding Proposal</title>
+  <style>
+    :root { --bg: #fff; --card: #f5f5f5; --text: #000; --muted: #333; --accent: #000; --border: #ccc; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; margin: 0; padding: 24px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; color: #000; }
+    .subtitle { color: #000; font-size: 0.95rem; margin-bottom: 24px; }
+    h2 { font-size: 1.25rem; margin: 28px 0 12px; color: #000; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    h3 { font-size: 1.05rem; margin: 16px 0 8px; color: #000; }
+    p { margin: 0 0 10px; color: #000; }
+    ul, ol { margin: 0 0 12px; padding-left: 20px; }
+    li { margin-bottom: 4px; color: #000; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; color: #000; }
+    th { background: var(--card); color: #000; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .highlight { background: #eee; border-left: 4px solid #000; padding: 12px 16px; margin: 12px 0; }
+    .highlight ul { color: #000; }
+    .total-row { font-weight: 700; background: #e8e8e8; color: #000; }
+    .page-break { page-break-before: always; }
+    @media print { body { background: #fff; color: #000; } .card { background: #f5f5f5; border-color: #ccc; } th, td { border-color: #ccc; color: #000; } h2 { color: #000; } .highlight { background: #eee; border-color: #000; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Canopy Sight™</h1>
+    <p class="subtitle">Development Plan & Funding Proposal — Build to Full Potential (3–4 Months)</p>
+    <p><strong>Confidential — for funding and implementation planning. Development and build by internal team; this document covers software scope, timeline, and non-labour costs only.</strong></p>
+
+    <h2>1. Executive Summary</h2>
+    <p>Canopy Sight is an AI-powered rail and site safety monitoring platform: real-time detection (person, vehicle, animal, equipment, debris), behavioural analytics, incident reconstruction, and operational intelligence. This plan outlines the complete software scope, a 3–4 month development timeline to a sellable product, and all <strong>non-labour costs</strong> (APIs, CNN training, infrastructure, tools) required to build the system to its full potential. A recommended commercial model is a <strong>one-time setup fee</strong> (covers development and deployment) plus a <strong>monthly subscription</strong> to run the platform.</p>
+
+    <h2>2. Software Scope & Features</h2>
+
+    <h3>2.1 Core Platform (Current & Planned)</h3>
+    <ul>
+      <li><strong>Dashboard & sites</strong> — System metrics, site/device status, GIS-native sites (lat/long, address).</li>
+      <li><strong>Devices & edge agent</strong> — Raspberry Pi edge units, camera configs, MeshConnect mesh networking, heartbeat, firmware, stream URLs.</li>
+      <li><strong>AI detection pipeline</strong> — YOLO-based object detection (person, vehicle, animal, equipment, debris), ONNX export, zone breach detection, SORT tracking, risk scoring (speed, direction, dwell time, zone, time-of-day).</li>
+      <li><strong>Alerts & notifications</strong> — Severity (advisory, warning, critical), status workflow, WebSocket live feed, notification routing (SMS, email, push, webhook).</li>
+      <li><strong>Incidents</strong> — Manual incident reports, severity, resolution tracking, contributing conditions, incident reconstruction (timeline of detection events around incident time).</li>
+      <li><strong>Analytics</strong> — Occupancy by zone, time-of-day pressure, heatmaps, behavioural patterns (clustering, congestion, loitering), NL query and report generation.</li>
+      <li><strong>Video</strong> — Clip metadata, signed URLs (S3/local), playback and retention settings.</li>
+      <li><strong>Security & compliance</strong> — Multi-tenant (organization-scoped), Clerk auth, audit logs, RBAC (admin, supervisor, viewer), Helmet, CORS, rate limiting.</li>
+    </ul>
+
+    <h3>2.2 Behavioural & Environmental Use Cases (Full Potential)</h3>
+    <ul>
+      <li><strong>Early behavioural indicators</strong> — Abnormal dwell times (loitering), clustering in waiting areas, pacing/agitation (speed/direction), repeated approach to reception points.</li>
+      <li><strong>Congestion & flow</strong> — Overcrowding/pinch points (occupancy thresholds), occupancy-by-zone analytics, time-of-day pressure (peak, out-of-hours, normal).</li>
+      <li><strong>Lone worker & out-of-hours</strong> — Time-of-day risk factor (e.g. 22:00–06:00), quiet-zone anomalies, delayed-response metrics.</li>
+      <li><strong>Incident reconstruction & learning</strong> — Visual timeline, environmental context, contributing conditions (crowding, zones, layout, time).</li>
+    </ul>
+
+    <h3>2.3 CNN Training Pipeline (Full Potential)</h3>
+    <ul>
+      <li>Multi-stage YOLO11 pipeline: coarse tune → fine-tune → ultra fine-tune; optional hyperparameter evolution.</li>
+      <li>Classes: person, vehicle, animal, equipment, debris. Dataset: YOLO format (e.g. rail-safety); export to ONNX for edge-agent.</li>
+      <li>Training to “top of range”: multiple dataset variants, evolution runs, and validation to achieve production-grade accuracy.</li>
+    </ul>
+
+    <h3>2.4 Gaps to Close for Full Product Brief</h3>
+    <ul>
+      <li>Synthetic model layer (model state API, time-series persistence, layer confidence/uncertainty).</li>
+      <li>Deployable sensing ingestion (UAV/sensor/external API ingestion, time-sync, buffered uploads).</li>
+      <li>Operational intelligence: playback page (“what changed”), scenario compare (baseline vs current), reports wired to live API.</li>
+    </ul>
+
+    <h2 class="page-break">3. Development Timeline (3–4 Months)</h2>
+    <table>
+      <thead><tr><th>Phase</th><th>Duration</th><th>Deliverables</th></tr></thead>
+      <tbody>
+        <tr><td>Month 1</td><td>Weeks 1–4</td><td>CNN training to production (datasets, evolution, ONNX); close analytics/incident reconstruction gaps; S3 signed URLs and storage.</td></tr>
+        <tr><td>Month 2</td><td>Weeks 5–8</td><td>Model state API and time-series views; ingestion endpoints for sensors/UAV/external APIs; playback page and scenario compare.</td></tr>
+        <tr><td>Month 3</td><td>Weeks 9–12</td><td>Hardening: E2E tests, rate limiting (Redis), backups, monitoring; production deployment (Fly.io/Vercel, DB, Redis).</td></tr>
+        <tr><td>Month 4</td><td>Weeks 13–16</td><td>Documentation, onboarding flows, billing integration (Stripe), packaging for first paying customers; go-live.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Cost Breakdown (Non-Labour — Build to Full Potential)</h2>
+    <p>All figures are to cover build and first-year run. <strong>No developer or labour costs are included.</strong> Estimates use top-of-range or “fully working” usage where applicable.</p>
+
+    <h3>4.1 AI & Third-Party APIs</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Purpose</th><th>Build phase (4 months)</th><th>Ongoing (monthly)</th></tr></thead>
+      <tbody>
+        <tr><td>Anthropic Claude (Sonnet/Opus)</td><td>NL query, analytics, reports, compliance, incident analysis</td><td>$600 – $1,400</td><td>$40 – $100</td></tr>
+        <tr><td>OpenAI (embeddings, GPT-4o-mini / summarization)</td><td>Event embeddings, alert summarization</td><td>$200 – $500</td><td>$10 – $40</td></tr>
+        <tr><td>Google Maps (optional)</td><td>Location / maps in UI</td><td>$50 – $150</td><td>$20 – $50</td></tr>
+        <tr class="total-row"><td colspan="2">Subtotal AI & APIs</td><td>$850 – $2,050</td><td>$70 – $190</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.2 CNN Training (Top of Range)</h3>
+    <p>Production-grade YOLO pipeline: multiple training cycles (coarse → fine → ultra), hyperparameter evolution, and validation across datasets (e.g. rail-safety variants). Using A100-class GPU (e.g. Ultralytics Pro ~$2.78/hr, or cloud A100 ~$3–4/hr).</p>
+    <table>
+      <thead><tr><th>Item</th><th>Estimate</th></tr></thead>
+      <tbody>
+        <tr><td>GPU compute (200–400 GPU-hours @ ~$2.80–4.00/hr)</td><td>$560 – $1,600</td></tr>
+        <tr><td>Multiple cycles (2–3 full pipeline runs + evolution)</td><td>$1,200 – $3,200</td></tr>
+        <tr><td>Dataset preparation / labelling tools (if applicable)</td><td>$200 – $600</td></tr>
+        <tr class="total-row"><td>Total CNN training</td><td><strong>$2,000 – $4,400</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.3 Infrastructure & Services (Build + First Year)</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Build (4 months)</th><th>Ongoing (monthly)</th></tr></thead>
+      <tbody>
+        <tr><td>Fly.io (API, web, Postgres, Redis)</td><td>$80 – $200</td><td>$20 – $50</td></tr>
+        <tr><td>CI/CD (Bitbucket Standard or similar)</td><td>$60 – $120</td><td>$15 – $30</td></tr>
+        <tr><td>Storage (R2/S3 — clips, exports)</td><td>$20 – $80</td><td>$5 – $25</td></tr>
+        <tr><td>Clerk (auth; free tier during build)</td><td>$0 – $100</td><td>$0 – $50</td></tr>
+        <tr><td>Monitoring (e.g. Sentry), domain, SSL</td><td>$0 – $150</td><td>$0 – $30</td></tr>
+        <tr><td>Stripe (payment; % of revenue only)</td><td>—</td><td>~2.9% + $0.30/charge</td></tr>
+        <tr class="total-row"><td>Subtotal infrastructure</td><td>$180 – $650</td><td>$40 – $185</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.4 Contingency & Buffer</h3>
+    <p>Recommended buffer for scope changes, extra training runs, or higher API usage: <strong>15–25%</strong> of total non-labour build cost.</p>
+
+    <h2>5. Total Funding Ask (Non-Labour)</h2>
+    <div class="card">
+      <table>
+        <tr><td>AI & APIs (build)</td><td>$850 – $2,050</td></tr>
+        <tr><td>CNN training</td><td>$2,000 – $4,400</td></tr>
+        <tr><td>Infrastructure (build)</td><td>$180 – $650</td></tr>
+        <tr><td>Subtotal</td><td>$3,030 – $7,100</td></tr>
+        <tr><td>Contingency (20%)</td><td>$600 – $1,420</td></tr>
+        <tr class="total-row"><td><strong>Total to cover build to full potential</strong></td><td><strong>$3,600 – $8,500</strong></td></tr>
+      </table>
+      <p style="margin-top:12px; color: #000;">Recommended ask to cover everything with comfort: <strong>$8,000 – $12,000</strong> (one-time, non-labour).</p>
+    </div>
+
+    <h2 class="page-break">6. Commercial Model: Setup Fee + Monthly</h2>
+    <p>The following is a suggested pricing structure to recover build costs and run the platform. It does not include your cost to build (labour); it is what the product can charge customers.</p>
+
+    <h3>6.1 One-Time Setup Fee</h3>
+    <ul>
+      <li><strong>Purpose:</strong> Covers deployment, configuration, onboarding, and contribution toward development/platform build.</li>
+      <li><strong>Suggested range:</strong> <strong>$8,000 – $15,000</strong> per customer (site or small multi-site deployment). Can be tiered by number of sites/cameras.</li>
+      <li>This fee aligns with the non-labour build cost above and allows the platform to be funded and improved over time.</li>
+    </ul>
+
+    <h3>6.2 Monthly Subscription</h3>
+    <ul>
+      <li><strong>Purpose:</strong> Covers hosting, AI usage, storage, support, and ongoing run cost.</li>
+      <li><strong>Suggested structure:</strong></li>
+    </ul>
+    <table>
+      <thead><tr><th>Model</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Base + per camera</td><td>$200 – $350/month base (e.g. up to 5–10 cameras) + $12 – $25 per additional camera</td></tr>
+        <tr><td>Flat small deployment</td><td>$250 – $500/month for up to 10 cameras (all-in)</td></tr>
+        <tr><td>Per-camera only</td><td>$25 – $45 per camera/month (run cost is ~$5–25/camera; margin for support and product)</td></tr>
+      </tbody>
+    </table>
+    <p>Run cost per camera (from existing estimates): ~$5–25/month depending on backend sharing and storage. Monthly fees above are set to cover run cost plus platform and support.</p>
+
+    <h2>7. Summary</h2>
+    <div class="highlight">
+      <ul style="margin:0;">
+        <li><strong>Scope:</strong> Full Canopy Sight platform: edge AI, analytics, behavioural use cases, incident reconstruction, CNN training to production, and remaining product-brief items (model state, ingestion, playback, scenario compare).</li>
+        <li><strong>Timeline:</strong> 3–4 months to a sellable, production-ready product.</li>
+        <li><strong>Non-labour cost to build:</strong> $3,600 – $8,500 (recommended ask $8,000 – $12,000 with buffer).</li>
+        <li><strong>Commercial model:</strong> One-time setup fee ($8,000 – $15,000) + monthly subscription ($250–500 base or $25–45/camera) to run and support the platform.</li>
+        <li><strong>Excluded:</strong> Developer/labour costs; this document covers APIs, CNN training, infrastructure, and tooling only.</li>
+      </ul>
+    </div>
+
+    <p style="margin-top:24px; font-size:0.85rem; color: #000;">Canopy Sight™ — Development Plan & Funding Proposal. Confidential. All figures are estimates; verify with vendors. Last updated: February 2025.</p>
+  </div>
+</body>
+</html>

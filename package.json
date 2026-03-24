@@ -16,9 +16,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
     "clean": "turbo run clean && node -e \"require('fs').rmSync('node_modules',{recursive:true,force:true})\""
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@turbo/gen": "^1.11.0",
     "@vitest/coverage-v8": "^1.1.0",
     "prettier": "^3.1.1",
@@ -31,5 +36,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@langchain/core": "^0.3.80"
+  }
 }

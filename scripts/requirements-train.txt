@@ -1,0 +1,19 @@
+# Canopy Sight CNN training dependencies
+# Install: pip install -r scripts/requirements-train.txt
+# Use in a venv; GPU recommended (CUDA for PyTorch).
+
+# Core (YOLO11 / YOLOv8)
+ultralytics>=8.3.0
+
+# PyTorch (install separately for GPU: https://pytorch.org/get-started/locally/)
+# CPU: pip install torch torchvision
+# CUDA 12.x: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Dataset / config
+PyYAML>=6.0
+opencv-python-headless>=4.8.0
+
+# Optional: hyperparameter tuning with Ray
+# ray[tune]>=2.0.0

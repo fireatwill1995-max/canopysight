@@ -1,5 +1,4 @@
 import { OpenAPIV3 } from "openapi-types";
-import { appRouter } from "../router";
 
 /**
  * Generate OpenAPI 3.0 specification from tRPC router
@@ -138,7 +137,7 @@ export function serveSwaggerUI(
   _req: import("express").Request,
   res: import("express").Response
 ): void {
-  const spec = generateOpenAPISpec();
+  const _spec = generateOpenAPISpec();
   const specUrl = "/api/openapi.json";
   
   const html = `

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { isDemoMode } from "@/lib/demo-auth";
+import { getWebSocketUrl } from "@/lib/api-config";
 
 interface Alert {
   id: string;
@@ -62,17 +63,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return;
     }
 
-    // Socket.io client handles protocol conversion automatically
-    // Use the API URL - Socket.io will use ws:// or wss:// as needed
-    // If accessing via ngrok, we need to use the ngrok URL for WebSocket
-    let apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    if (isNgrok) {
-      // For ngrok, WebSocket needs to go through the same ngrok tunnel
-      // Use the current page's origin with wss protocol
-      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      apiUrl = `${wsProtocol}//${window.location.hostname}`;
-    }
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || apiUrl;
+    const wsUrl = getWebSocketUrl();
     
     // Only connect if we have a valid URL
     if (!wsUrl) {
@@ -81,7 +72,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
     
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
-    const getReconnectionDelay = (attempt: number): number => {
+    const _getReconnectionDelay = (attempt: number): number => {
       const delay = Math.min(1000 * Math.pow(2, attempt), maxReconnectDelay);
       return delay;
     };
@@ -113,12 +104,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         reconnectTimeoutRef.current = null;
       }
 
-      // Authenticate
+      // Authenticate: demo build uses demo mode for all unauthenticated users
       if (isDemoMode()) {
         socket.emit("authenticate", { demoMode: true });
       } else {
-        // When re-adding auth, send real token here
-        socket.emit("authenticate", { token: "placeholder" });
+        socket.emit("authenticate", { demoMode: true });
       }
     });
 
@@ -149,7 +139,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       setConnected(false);
     });
 
-    socket.on("connect_error", (err: Error) => {
+    socket.on("connect_error", (_err: Error) => {
       failedAttemptsRef.current += 1;
       // Suppress noisy connection errors in development
       // Errors are handled via state (error, reconnecting) for UI feedback

@@ -4,7 +4,7 @@ import { createAlertSchema, updateAlertSchema } from "@canopy-sight/validators";
 import { TRPCError } from "@trpc/server";
 import { alertDispatcher } from "../services/alert-dispatcher";
 import { logger } from "@canopy-sight/config";
-import { cacheMiddleware, cacheInvalidation } from "../middleware/cache-middleware";
+import { cacheMiddleware } from "../middleware/cache-middleware";
 
 export const alertRouter = router({
   list: protectedProcedure

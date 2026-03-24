@@ -3,6 +3,7 @@
  * This ensures tRPC requests work through ngrok and return proper JSON errors
  */
 import { NextRequest, NextResponse } from "next/server";
+import { getApiBaseUrl } from "@/lib/api-config";
 
 // tRPC INTERNAL_SERVER_ERROR code (JSON-RPC 2.0 / tRPC spec)
 const TRPC_INTERNAL_SERVER_ERROR = -32603;
@@ -50,7 +51,7 @@ async function handleTrpcRequest(request: NextRequest, method: string) {
   const batchSize = pathPart ? Math.max(1, pathPart.split(",").length) : 1;
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const apiUrl = getApiBaseUrl();
     // Extract the tRPC path from /api-proxy/trpc/...
     const trpcPath = pathname.replace("/api-proxy/trpc", "/trpc");
     const queryString = searchParams.toString();
@@ -112,7 +113,7 @@ async function handleTrpcRequest(request: NextRequest, method: string) {
       if (contentType.includes("application/json") || responseText.trim().startsWith("{")) {
         try {
           responseData = JSON.parse(responseText);
-        } catch (parseError) {
+        } catch {
           logError("Failed to parse tRPC response as JSON", {
             responseText: responseText.substring(0, 200),
             status: response.status,

@@ -307,7 +307,7 @@ export default function AnalyticsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-blue-800 dark:text-blue-300">
-                    Found <strong>{detectionItems.length}</strong> result{detectionItems.length !== 1 ? "s" : ""} for "{searchQuery}"
+                    Found <strong>{detectionItems.length}</strong> result{detectionItems.length !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
                   </p>
                   <Button
                     variant="outline"

@@ -1,7 +1,14 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { Context } from "./context";
 import { performanceMiddleware } from "../middleware/performance";
+import { auditMiddleware } from "../middleware/audit-middleware";
+import { RateLimiter } from "../middleware/rate-limiter";
 import { logger } from "@canopy-sight/config";
+
+const rateLimiter = new RateLimiter(
+  Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
+  Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 200
+);
 
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
@@ -31,9 +38,25 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router;
 export const publicProcedure = t.procedure.use(performanceMiddleware());
 
-// Protected procedure - requires authentication
+// Protected procedure - requires authentication + rate limit + audit
 export const protectedProcedure = t.procedure
   .use(performanceMiddleware())
+  .use(auditMiddleware())
+  .use(async (opts) => {
+    const key = opts.ctx.organizationId || opts.ctx.userId || "anonymous";
+    if (!rateLimiter.check(key)) {
+      logger.warn("Rate limit exceeded", {
+        key,
+        organizationId: opts.ctx.organizationId,
+        userId: opts.ctx.userId,
+      });
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Rate limit exceeded. Please try again later.",
+      });
+    }
+    return opts.next({ ctx: opts.ctx });
+  })
   .use(async ({ ctx, next }) => {
     // Check if context was created successfully
     if (!ctx.organizationId) {

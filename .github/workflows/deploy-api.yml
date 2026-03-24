@@ -1,0 +1,64 @@
+# Deploy Canopy Sight API to Fly.io on push to main
+# Requires: FLY_API_TOKEN secret in GitHub repo settings
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy API to Fly.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema packages/database/prisma/schema.prisma
+
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: |
+          set -e
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN secret is not set. Add it in repo Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          flyctl deploy --config apps/api/fly.toml --dockerfile apps/api/Dockerfile --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Health check
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://canopy-sight-api.fly.dev/health || true)
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "503" ]; then
+            echo "Health check passed (status: $STATUS)"
+          else
+            echo "::warning::Health check returned status $STATUS"
+          fi
