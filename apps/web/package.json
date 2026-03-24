@@ -16,7 +16,7 @@
     "@canopy-sight/validators": "*",
     "@tanstack/react-query": "^4.36.1",
     "@trpc/client": "^10.45.0",
-    "@trpc/react-query": "^10.45.0",
+    "@trpc/react-query": "^11.15.0",
     "framer-motion": "^10.16.16",
     "hls.js": "^1.6.15",
     "next": "^14.0.4",
