@@ -1,6 +1,6 @@
 # Build Next.js web app for Fly.io (monorepo: build from repo root)
 # Build context MUST be repo root: docker build -f apps/web/Dockerfile .
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 
 # ---- Dependencies: copy all workspace package.json so npm ci can link ----
@@ -33,7 +33,7 @@ WORKDIR /app/apps/web
 RUN npm run build
 
 # ---- Runner: minimal image with standalone server ----
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 
 RUN addgroup -g 1001 -S canopy && \
     adduser -S canopy -u 1001 -G canopy
