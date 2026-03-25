@@ -21,6 +21,7 @@ RUN npm ci
 
 # ---- Prisma generate ----
 FROM base AS prisma
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules /app/node_modules
 COPY package.json ./
 COPY packages/database/package.json packages/database/
@@ -57,7 +58,9 @@ RUN npm ci --omit=dev
 # ---- Runner ----
 FROM node:22-alpine AS runner
 
-RUN addgroup -g 1001 -S canopy && \
+# OpenSSL 3 libs required by Prisma query engine on Alpine
+RUN apk add --no-cache openssl && \
+    addgroup -g 1001 -S canopy && \
     adduser -S canopy -u 1001 -G canopy
 
 ENV NODE_ENV=production
