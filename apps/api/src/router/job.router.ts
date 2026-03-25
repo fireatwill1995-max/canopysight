@@ -31,18 +31,7 @@ export const jobRouter = router({
     .query(async ({ ctx, input }) => {
       try {
         // Query job records from the database
-        const jobs = await ctx.prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            queue: string;
-            status: string;
-            data: unknown;
-            result: unknown;
-            error: string | null;
-            created_at: Date;
-            updated_at: Date;
-          }>
-        >(
+        const jobs = (await ctx.prisma.$queryRawUnsafe(
           `SELECT id, queue, status, data, result, error, created_at, updated_at
            FROM jobs
            WHERE organization_id = $1
@@ -55,7 +44,16 @@ export const jobRouter = router({
           input.status ?? null,
           input.limit,
           input.offset,
-        );
+        )) as Array<{
+          id: string;
+          queue: string;
+          status: string;
+          data: unknown;
+          result: unknown;
+          error: string | null;
+          created_at: Date;
+          updated_at: Date;
+        }>;
 
         return jobs.map((j) => ({
           id: j.id,

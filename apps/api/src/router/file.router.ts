@@ -129,19 +129,7 @@ export const fileRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const results = await ctx.prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            key: string;
-            filename: string;
-            content_type: string;
-            size: number;
-            status: string;
-            site_id: string | null;
-            device_id: string | null;
-            created_at: Date;
-          }>
-        >(
+        const results = (await ctx.prisma.$queryRawUnsafe(
           `SELECT id, key, filename, content_type, size, status, site_id, device_id, created_at
            FROM files
            WHERE organization_id = $1
@@ -158,7 +146,17 @@ export const fileRouter = router({
           input.contentType ? `${input.contentType}%` : null,
           input.limit + 1,
           input.cursor ? Number(input.cursor) : 0,
-        );
+        )) as Array<{
+          id: string;
+          key: string;
+          filename: string;
+          content_type: string;
+          size: number;
+          status: string;
+          site_id: string | null;
+          device_id: string | null;
+          created_at: Date;
+        }>;
 
         const hasMore = results.length > input.limit;
         const items = hasMore ? results.slice(0, input.limit) : results;
@@ -233,15 +231,7 @@ export const fileRouter = router({
     .input(z.object({ fileId: z.string() }))
     .query(async ({ ctx, input }) => {
       try {
-        const detections = await ctx.prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            label: string;
-            confidence: number;
-            bbox: unknown;
-            created_at: Date;
-          }>
-        >(
+        const detections = (await ctx.prisma.$queryRawUnsafe(
           `SELECT d.id, d.label, d.confidence, d.bbox, d.created_at
            FROM detections d
            JOIN files f ON f.id = d.file_id
@@ -249,7 +239,13 @@ export const fileRouter = router({
            ORDER BY d.confidence DESC`,
           input.fileId,
           ctx.organizationId,
-        );
+        )) as Array<{
+          id: string;
+          label: string;
+          confidence: number;
+          bbox: unknown;
+          created_at: Date;
+        }>;
 
         return detections.map((d) => ({
           id: d.id,

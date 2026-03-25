@@ -35,22 +35,7 @@ export const missionRouter = router({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const missions = await ctx.prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            name: string;
-            site_id: string;
-            site_name: string;
-            drone_id: string | null;
-            drone_name: string | null;
-            status: string;
-            flight_path: unknown;
-            started_at: Date | null;
-            completed_at: Date | null;
-            created_at: Date;
-            detection_count: number;
-          }>
-        >(
+        const missions = (await ctx.prisma.$queryRawUnsafe(
           `SELECT m.id, m.name, m.site_id, s.name as site_name,
                   m.drone_id, d.name as drone_name,
                   m.status, m.flight_path,
@@ -66,7 +51,20 @@ export const missionRouter = router({
           ctx.organizationId,
           input?.status ?? null,
           input?.projectId ?? null,
-        );
+        )) as Array<{
+          id: string;
+          name: string;
+          site_id: string;
+          site_name: string;
+          drone_id: string | null;
+          drone_name: string | null;
+          status: string;
+          flight_path: unknown;
+          started_at: Date | null;
+          completed_at: Date | null;
+          created_at: Date;
+          detection_count: number;
+        }>;
 
         return missions.map((m) => ({
           id: m.id,
@@ -97,22 +95,7 @@ export const missionRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       try {
-        const rows = await ctx.prisma.$queryRawUnsafe<
-          Array<{
-            id: string;
-            name: string;
-            site_id: string;
-            site_name: string;
-            drone_id: string | null;
-            drone_name: string | null;
-            status: string;
-            flight_path: unknown;
-            metadata: unknown;
-            started_at: Date | null;
-            completed_at: Date | null;
-            created_at: Date;
-          }>
-        >(
+        const rows = (await ctx.prisma.$queryRawUnsafe(
           `SELECT m.id, m.name, m.site_id, s.name as site_name,
                   m.drone_id, d.name as drone_name,
                   m.status, m.flight_path, m.metadata,
@@ -123,7 +106,20 @@ export const missionRouter = router({
            WHERE m.id = $1 AND m.organization_id = $2`,
           input.id,
           ctx.organizationId,
-        );
+        )) as Array<{
+          id: string;
+          name: string;
+          site_id: string;
+          site_name: string;
+          drone_id: string | null;
+          drone_name: string | null;
+          status: string;
+          flight_path: unknown;
+          metadata: unknown;
+          started_at: Date | null;
+          completed_at: Date | null;
+          created_at: Date;
+        }>;
 
         if (rows.length === 0) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Mission not found" });
@@ -188,7 +184,7 @@ export const missionRouter = router({
           }
         }
 
-        const rows = await ctx.prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        const rows = (await ctx.prisma.$queryRawUnsafe(
           `INSERT INTO missions (name, site_id, drone_id, flight_path, organization_id, status)
            VALUES ($1, $2, $3, $4::jsonb, $5, 'planned')
            RETURNING id`,
@@ -197,7 +193,7 @@ export const missionRouter = router({
           input.droneId ?? null,
           input.flightPath ? JSON.stringify(input.flightPath) : null,
           ctx.organizationId,
-        );
+        )) as Array<{ id: string }>;
 
         logger.info("Mission created", {
           missionId: rows[0].id,
