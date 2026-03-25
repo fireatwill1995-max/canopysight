@@ -30,15 +30,12 @@ WORKDIR /app/packages/database
 RUN npx prisma generate
 WORKDIR /app
 
-# ---- Build API ----
+# ---- Copy source (tsx runs TS directly, no tsc build needed) ----
 FROM base AS builder
 COPY --from=deps /app/node_modules /app/node_modules
 COPY . .
 # Prisma generate writes to root node_modules in workspace; overlay from prisma stage
 COPY --from=prisma /app/node_modules /app/node_modules
-
-WORKDIR /app/apps/api
-RUN npm run build
 
 # ---- Production dependencies only ----
 FROM base AS prod-deps
@@ -82,4 +79,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||8080)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-CMD ["npx", "tsx", "dist/server.js"]
+CMD ["npx", "tsx", "src/server.ts"]
