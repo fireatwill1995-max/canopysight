@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
+import { Card, CardContent } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
 import { Skeleton, CardSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
