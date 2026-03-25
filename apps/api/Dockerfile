@@ -1,5 +1,5 @@
 # Build API for Fly.io (monorepo: build from repo root with docker build -f apps/api/Dockerfile .)
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 
 # ---- Dependencies (all workspace package.json so npm ci works) ----
@@ -56,7 +56,7 @@ COPY services/video-processor/package.json services/video-processor/
 RUN npm ci --omit=dev
 
 # ---- Runner ----
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 
 # OpenSSL 3 libs required by Prisma query engine on Alpine
 RUN apk add --no-cache openssl && \
