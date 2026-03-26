@@ -7,17 +7,6 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
 import "@canopy-sight/ui/src/styles/globals.css";
 
-// Lazy load heavy components that aren't needed immediately
-const DemoBanner = dynamic(() => import("@/components/demo-banner").then(mod => ({ default: mod.DemoBanner })), {
-  ssr: false, // Don't render on server
-  loading: () => null, // Don't show loading state for banner
-});
-
-const SimulationBanner = dynamic(() => import("@/components/simulation-banner").then(mod => ({ default: mod.SimulationBanner })), {
-  ssr: false,
-  loading: () => null,
-});
-
 const ConnectionStatus = dynamic(() => import("@/components/connection-status").then(mod => ({ default: mod.ConnectionStatus })), {
   ssr: false,
   loading: () => null,
@@ -70,8 +59,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <div className="relative z-10 min-h-screen flex flex-col">
         <ErrorBoundary fallback={ErrorFallback}>
           <Providers>
-            <DemoBanner />
-            <SimulationBanner />
             <Navigation />
             <ServerStatus />
             <main id="main-content" className="flex-1" role="main" aria-label="Main content" tabIndex={-1}>

@@ -9,37 +9,8 @@ import { LiveAlertFeed } from "@/components/live-alert-feed";
 import { ThreatScoreGauge } from "@/components/threat-score-gauge";
 import { ShiftBriefingPanel } from "@/components/shift-briefing-panel";
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
-import { isSimulationMode, getMockDashboardStats } from "@/lib/simulation";
-
-// ─── Mock AI Insights (demo fallback) ────────────────────────────────────────
-const MOCK_AI_INSIGHTS = [
-  {
-    id: "ins-1",
-    icon: "🔴",
-    label: "Zone B · Elevated Risk",
-    body: "5 high-confidence detections in last 60 min. Patrol recommended.",
-    time: "8 min ago",
-    severity: "critical" as const,
-  },
-  {
-    id: "ins-2",
-    icon: "🐘",
-    label: "Elephant herd approaching perimeter",
-    body: "6 individuals detected 0.8 km north. Trending toward Zone A boundary.",
-    time: "23 min ago",
-    severity: "warning" as const,
-  },
-  {
-    id: "ins-3",
-    icon: "📷",
-    label: "Camera CS-04 offline",
-    body: "Coverage gap in Zone C east. Maintenance required to restore full surveillance.",
-    time: "1 h ago",
-    severity: "advisory" as const,
-  },
-];
 
 // Compute threat score from real or mock data
 function computeThreatScore(params: {
@@ -127,14 +98,7 @@ function QuickActionButton({
 export default function DashboardPage() {
   const { addToast } = useToast();
   const canQuery = useCanUseProtectedTrpc();
-  const [simulationOn, setSimulationOn] = useState(false);
   const [lastScanTime] = useState(() => new Date());
-
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
-
-  const mockStats = simulationOn ? getMockDashboardStats() : null;
 
   const {
     data: sites,
@@ -146,18 +110,18 @@ export default function DashboardPage() {
 
   const { data: devicesData } = trpc.device.list.useQuery(
     {},
-    { enabled: canQuery && !simulationOn, retry: false }
+    { enabled: canQuery, retry: false }
   );
 
   const { data: activeAlertsData } = trpc.alert.list.useQuery(
     { status: "active", limit: 100 },
-    { enabled: canQuery && !simulationOn, retry: false }
+    { enabled: canQuery, retry: false }
   );
 
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const { data: detectionStats } = trpc.detection.stats.useQuery(
     { startDate: last24h, endDate: new Date() },
-    { enabled: canQuery && !simulationOn, retry: false }
+    { enabled: canQuery, retry: false }
   );
 
   // Use public ping on the dashboard to avoid noisy 401s when running demo/unauth flows.
@@ -178,24 +142,16 @@ export default function DashboardPage() {
   }, [sitesError, addToast]);
 
   // Computed stats
-  const totalDevices = simulationOn ? (mockStats?.devices ?? 0) : (devicesData?.length ?? 0);
-  const onlineDevices = simulationOn ? totalDevices : Math.max(0, totalDevices - 1); // -1 for offline CS-04 in demo
-  const activeAlertCount = simulationOn
-    ? (mockStats?.activeAlerts ?? 0)
-    : (activeAlertsData?.items?.length ?? 0);
-  const detectionTotal = simulationOn
-    ? (mockStats?.recentEvents ?? 0)
-    : (detectionStats?.total ?? 0);
+  const totalDevices = devicesData?.length ?? 0;
+  const onlineDevices = devicesData?.filter((d: { status: string }) => d.status === "online").length ?? 0;
+  const activeAlertCount = activeAlertsData?.items?.length ?? 0;
+  const detectionTotal = detectionStats?.total ?? 0;
 
-  // Severity breakdown (best-effort from real data or mock)
+  // Severity breakdown
   type AlertItem = { severity: string; [k: string]: unknown };
   const alertItems: AlertItem[] = (activeAlertsData?.items as AlertItem[] | undefined) ?? [];
-  const criticalCount = simulationOn
-    ? 0
-    : alertItems.filter((a) => a.severity === "critical").length;
-  const warningCount = simulationOn
-    ? mockStats?.activeAlerts ?? 0
-    : alertItems.filter((a) => a.severity === "warning").length;
+  const criticalCount = alertItems.filter((a) => a.severity === "critical").length;
+  const warningCount = alertItems.filter((a) => a.severity === "warning").length;
 
   // Threat score
   const threat = useMemo(
@@ -205,25 +161,14 @@ export default function DashboardPage() {
         criticalAlerts: criticalCount,
         warningAlerts: warningCount,
         totalDetections: detectionTotal,
-        devicesOffline: simulationOn ? 1 : Math.max(0, totalDevices - onlineDevices),
+        devicesOffline: Math.max(0, totalDevices - onlineDevices),
       }),
-    [
-      activeAlertCount,
-      criticalCount,
-      warningCount,
-      detectionTotal,
-      simulationOn,
-      totalDevices,
-      onlineDevices,
-    ]
+    [activeAlertCount, criticalCount, warningCount, detectionTotal, totalDevices, onlineDevices]
   );
 
-  // Species detected (mocked for now — backend can provide this later)
-  const speciesCount = simulationOn ? 4 : 0;
-
-  // Area under surveillance — rough estimate from site count
-  const siteCount = simulationOn ? (mockStats?.sites ?? 0) : (sites?.length ?? 0);
-  const surveillanceAreaKm2 = siteCount * 12; // demo heuristic
+  // Area under surveillance — estimate from site count
+  const siteCount = sites?.length ?? 0;
+  const surveillanceAreaKm2 = siteCount * 12;
 
   if (canQuery && sitesLoading) {
     return (
@@ -254,7 +199,7 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                 Threat Score
               </p>
-              {(canQuery && activeAlertsData === undefined && !simulationOn) ? (
+              {canQuery && activeAlertsData === undefined ? (
                 <Skeleton className="w-[160px] h-[80px] rounded-xl" />
               ) : (
                 <ThreatScoreGauge score={threat.score} size="md" showLabel trend={threat.trend} />
@@ -346,35 +291,20 @@ export default function DashboardPage() {
 
       {/* ─── Live Stats Row ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        {/* Sites */}
         <Card className="card-gradient card-hover animate-fade-in">
           <CardContent className="p-4">
             <div className="text-2xl mb-1">📍</div>
             <p className="text-2xl font-bold text-foreground">
-              {simulationOn && mockStats ? (
-                mockStats.sites
-              ) : !canQuery ? (
-                "—"
-              ) : sitesLoading ? (
-                <Skeleton className="h-7 w-10 inline-block" />
-              ) : (
-                sites?.length ?? 0
-              )}
+              {!canQuery ? "—" : sitesLoading ? <Skeleton className="h-7 w-10 inline-block" /> : siteCount}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Sites</p>
           </CardContent>
         </Card>
-
-        {/* Devices Online */}
         <Card className="card-gradient card-hover animate-fade-in" style={{ animationDelay: "0.05s" }}>
           <CardContent className="p-4">
             <div className="text-2xl mb-1">📡</div>
             <p className="text-2xl font-bold text-foreground">
-              {!canQuery && !simulationOn ? (
-                "—"
-              ) : devicesData === undefined && !simulationOn ? (
-                <Skeleton className="h-7 w-12 inline-block" />
-              ) : (
+              {devicesData === undefined ? <Skeleton className="h-7 w-12 inline-block" /> : (
                 <span>
                   <span className="text-emerald-500">{onlineDevices}</span>
                   <span className="text-muted-foreground text-base font-normal">/{totalDevices}</span>
@@ -384,62 +314,40 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground mt-0.5">Devices Online</p>
           </CardContent>
         </Card>
-
-        {/* Active Alerts */}
         <Card className="card-gradient card-hover animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <CardContent className="p-4">
             <div className="text-2xl mb-1">🚨</div>
             <p className={`text-2xl font-bold ${activeAlertCount > 0 ? "text-destructive" : "text-foreground"}`}>
-              {!canQuery && !simulationOn ? (
-                "—"
-              ) : activeAlertsData === undefined && !simulationOn ? (
-                <Skeleton className="h-7 w-10 inline-block" />
-              ) : (
-                activeAlertCount
-              )}
+              {activeAlertsData === undefined ? <Skeleton className="h-7 w-10 inline-block" /> : activeAlertCount}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Active Alerts</p>
           </CardContent>
         </Card>
-
-        {/* Detections Today */}
         <Card className="card-gradient card-hover animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <CardContent className="p-4">
             <div className="text-2xl mb-1">📊</div>
             <p className="text-2xl font-bold text-foreground">
-              {!canQuery && !simulationOn ? (
-                "—"
-              ) : detectionStats === undefined && !simulationOn ? (
-                <Skeleton className="h-7 w-10 inline-block" />
-              ) : (
-                detectionTotal
-              )}
+              {detectionStats === undefined ? <Skeleton className="h-7 w-10 inline-block" /> : detectionTotal}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Detections Today</p>
           </CardContent>
         </Card>
-
-        {/* Species Detected */}
         <Card className="card-gradient card-hover animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <CardContent className="p-4">
             <div className="text-2xl mb-1">🦁</div>
             <p className="text-2xl font-bold text-foreground">
-              {speciesCount > 0 ? speciesCount : <span className="text-muted-foreground text-base">—</span>}
+              <span className="text-muted-foreground text-base">—</span>
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Species Today</p>
           </CardContent>
         </Card>
-
-        {/* Surveillance Area */}
         <Card className="card-gradient card-hover animate-fade-in" style={{ animationDelay: "0.25s" }}>
           <CardContent className="p-4">
             <div className="text-2xl mb-1">🗺️</div>
             <p className="text-2xl font-bold text-foreground">
               {surveillanceAreaKm2 > 0 ? (
                 <span>{surveillanceAreaKm2}<span className="text-sm font-normal text-muted-foreground"> km²</span></span>
-              ) : (
-                <span className="text-muted-foreground text-base">—</span>
-              )}
+              ) : <span className="text-muted-foreground text-base">—</span>}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Under Surveillance</p>
           </CardContent>
@@ -458,85 +366,55 @@ export default function DashboardPage() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <QuickActionButton icon="📋" label="Generate Shift Brief" href="/dashboard#briefing" />
-            <QuickActionButton icon="🗺️" label="Command Map" href="/sites" />
+            <QuickActionButton icon="🗺️" label="Command Center" href="/command" />
             <QuickActionButton icon="📦" label="Export Evidence" href="/playback" />
-            <QuickActionButton
-              icon="🤖"
-              label="Run AI Analysis"
-              href="/analytics"
-            />
+            <QuickActionButton icon="🤖" label="AI Analytics" href="/analytics" />
           </div>
         </CardContent>
       </Card>
 
-      {/* ─── Simulation / Demo entry point ───────────────────────────────── */}
-      {!sitesLoading && !sitesError && (
-        <Card className="mb-6 border border-border bg-muted/60 dark:bg-muted/40 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <span className="text-2xl">🎬</span>
-              Show buyers how it works (Simulation)
-            </CardTitle>
-            <CardDescription>
-              Open a site&apos;s live view with a demo camera feed and sample rail-safety
-              alerts—no real devices required.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sites && sites.length > 0 ? (
-              <>
-                <Link href={`/sites/${sites[0].id}?tab=live&simulation=1`}>
-                  <Button className="bg-primary text-primary-foreground hover:opacity-90 min-h-[44px] touch-manipulation">
-                    Open live simulation →
-                  </Button>
-                </Link>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Uses site &quot;{sites[0].name}&quot;. You can pick any site from the list below
-                  and use the simulation toggle there.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Add a site first, then open it and use the{" "}
-                <strong>Enable simulation mode</strong> toggle on the site page to see the demo.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* ─── AI Insights + Live Alerts ───────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        {/* Recent AI Insights */}
+        {/* Recent AI Insights — driven by real active alerts */}
         <Card className="card-gradient animate-slide-up">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-xl">🤖</span>
-              Recent AI Insights
+              AI Threat Insights
             </CardTitle>
             <CardDescription>
-              Latest AI-generated recommendations — updated every analysis cycle
+              Live analysis from active alerts and detection activity
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {MOCK_AI_INSIGHTS.map((insight, idx) => (
-                <div
-                  key={insight.id}
-                  className="flex gap-3 p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors animate-fade-in"
-                  style={{ animationDelay: `${idx * 0.08}s` }}
-                >
-                  <span className="text-xl flex-shrink-0 mt-0.5">{insight.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground leading-snug">{insight.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.body}</p>
+              {alertItems.length === 0 ? (
+                <div className="flex gap-3 p-3 rounded-xl border border-border bg-muted/30">
+                  <span className="text-xl">✅</span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">All clear</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">No active alerts — system nominal</p>
                   </div>
-                  <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 mt-0.5">{insight.time}</span>
                 </div>
-              ))}
-              {/* Last AI scan time */}
+              ) : (
+                alertItems.slice(0, 3).map((alert, idx) => (
+                  <div
+                    key={String(alert.id)}
+                    className="flex gap-3 p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors animate-fade-in"
+                    style={{ animationDelay: `${idx * 0.08}s` }}
+                  >
+                    <span className="text-xl flex-shrink-0 mt-0.5">
+                      {alert.severity === "critical" ? "🔴" : alert.severity === "warning" ? "🟠" : "🟡"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-snug">{String(alert.title ?? "Alert")}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{String(alert.message ?? "")}</p>
+                    </div>
+                  </div>
+                ))
+              )}
               <div className="pt-2 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Last AI scan</span>
+                <span className="text-xs text-muted-foreground">Last scan</span>
                 <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block animate-pulse" />
                   {lastScanTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

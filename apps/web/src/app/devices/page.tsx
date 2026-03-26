@@ -7,18 +7,13 @@ import { DeviceCardSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import { DeviceStatusPanel } from "@/components/device-status-panel";
 import Link from "next/link";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
-import { isSimulationMode } from "@/lib/simulation";
 
 export default function DevicesPage() {
   const router = useRouter();
   const { addToast } = useToast();
-  const [simulationOn, setSimulationOn] = useState(false);
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "maintenance" | "error">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "camera" | "meshconnect">("all");
@@ -158,11 +153,6 @@ export default function DevicesPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-2">
               Devices
-              {simulationOn && (
-                <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                  Simulation
-                </span>
-              )}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage edge detection devices</p>
           </div>

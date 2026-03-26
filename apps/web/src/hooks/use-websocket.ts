@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { isDemoMode } from "@/lib/demo-auth";
 import { getWebSocketUrl } from "@/lib/api-config";
 
 interface Alert {
@@ -19,7 +18,10 @@ interface Detection {
   type: string;
   confidence: number;
   siteId: string;
+  deviceId?: string;
   timestamp: Date;
+  boundingBox?: { x: number; y: number; width: number; height: number };
+  riskScore?: number;
 }
 
 interface DeviceStatus {
@@ -104,12 +106,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         reconnectTimeoutRef.current = null;
       }
 
-      // Authenticate: demo build uses demo mode for all unauthenticated users
-      if (isDemoMode()) {
-        socket.emit("authenticate", { demoMode: true });
-      } else {
-        socket.emit("authenticate", { demoMode: true });
-      }
+      socket.emit("authenticate", { demoMode: true });
     });
 
     socket.on("authenticated", (data: { success: boolean; error?: string }) => {

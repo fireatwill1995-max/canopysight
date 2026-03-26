@@ -315,11 +315,14 @@ export class WebSocketServer {
    * Broadcast detection event
    */
   broadcastDetection(organizationId: string, detection: {
-    id:         string;
-    type:       string;
-    confidence: number;
-    siteId:     string;
-    timestamp:  Date;
+    id:          string;
+    type:        string;
+    confidence:  number;
+    siteId:      string;
+    deviceId?:   string;
+    timestamp:   Date;
+    boundingBox?: { x: number; y: number; width: number; height: number };
+    riskScore?:  number;
   }): void {
     this.io.to(`detections:${organizationId}`).emit("detection", detection);
   }

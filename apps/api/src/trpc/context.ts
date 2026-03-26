@@ -10,38 +10,34 @@ export interface Context {
 
 export async function createContext(opts: { req: { headers: Record<string, string | string[] | undefined> } }): Promise<Context> {
   const req = opts.req;
-  // Clerk has been removed. In this demo build, always act as a single
-  // demo admin user bound to a demo organization so that all protected
-  // procedures have a valid organization/user context.
-
-  const demoRoleHeader = req.headers["x-demo-user-role"];
-  const demoRole = Array.isArray(demoRoleHeader) ? demoRoleHeader[0] : demoRoleHeader;
+  // Single-org model: all requests are authenticated as the canopy-admin user.
+  // Replace with a real auth provider (Clerk, Auth0, etc.) for multi-tenancy.
 
   const runDb = async (): Promise<Context> => {
     const org = await prisma.organization.upsert({
-      where: { slug: "demo-org" },
+      where: { slug: "canopy-org" },
       update: {},
       create: {
-        name: "Demo Organization",
-        slug: "demo-org",
+        name: "Canopy Sight",
+        slug: "canopy-org",
       },
     });
 
     const user = await prisma.user.upsert({
-      where: { clerkId: "demo-user-123" },
+      where: { clerkId: "canopy-admin" },
       update: {
         organizationId: org.id,
-        role: demoRole || "admin",
-        email: "demo@canopysight.com",
-        firstName: "Demo",
-        lastName: "User",
+        role: "admin",
+        email: "admin@canopysight.com",
+        firstName: "Canopy",
+        lastName: "Admin",
       },
       create: {
-        clerkId: "demo-user-123",
-        email: "demo@canopysight.com",
-        firstName: "Demo",
-        lastName: "User",
-        role: demoRole || "admin",
+        clerkId: "canopy-admin",
+        email: "admin@canopysight.com",
+        firstName: "Canopy",
+        lastName: "Admin",
+        role: "admin",
         organizationId: org.id,
       },
     });

@@ -5,10 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@cano
 import { Button } from "@canopy-sight/ui";
 import { AlertCardSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
-import { isSimulationMode, getMockIncidents, SIM_DEMO_SITE_ID } from "@/lib/simulation";
 
 interface IncidentEntry {
   id: string;
@@ -24,16 +23,10 @@ interface IncidentEntry {
 export default function IncidentsPage() {
   const { addToast } = useToast();
   const canQuery = useCanUseProtectedTrpc();
-  const [simulationOn, setSimulationOn] = useState(false);
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
-
-  const { data: apiData, isLoading, error, refetch } = trpc.incident.list.useQuery(
+  const { data, isLoading, error, refetch } = trpc.incident.list.useQuery(
     { limit: 100 },
-    { enabled: canQuery && !simulationOn, retry: false }
+    { enabled: canQuery, retry: false }
   );
-  const data = simulationOn ? getMockIncidents(100) : apiData;
 
   const resolveMutation = trpc.incident.resolve.useMutation({
     onSuccess: () => {
@@ -87,7 +80,6 @@ export default function IncidentsPage() {
 
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const handleResolve = (id: string) => {
-    if (simulationOn) return;
     setResolvingId(id);
     resolveMutation.mutate({ id }, {
       onSettled: () => setResolvingId(null),
@@ -101,11 +93,6 @@ export default function IncidentsPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center gap-2">
               Incidents
-              {simulationOn && (
-                <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                  Simulation
-                </span>
-              )}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Manual incident reports and safety logs
@@ -114,11 +101,11 @@ export default function IncidentsPage() {
         </div>
       </div>
 
-      {!simulationOn && isLoading ? (
+      {isLoading ? (
         <div className="space-y-4">
           <AlertCardSkeleton count={3} />
         </div>
-      ) : !simulationOn && error ? (
+      ) : error ? (
         <Card>
           <CardContent className="p-8">
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -169,7 +156,7 @@ export default function IncidentsPage() {
                     <span className="text-gray-500">Site:</span>
                     <p className="font-medium break-words">
                       <Link
-                        href={incident.siteId === SIM_DEMO_SITE_ID ? "/sites" : `/sites/${incident.siteId}`}
+                        href={`/sites/${incident.siteId}`}
                         className="text-primary hover:underline"
                       >
                         {incident.site.name}

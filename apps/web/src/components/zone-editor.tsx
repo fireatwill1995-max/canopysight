@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
-import { getYoutubeVideoId, DEMO_VIDEO_YOUTUBE_ID, DEMO_VIDEO_LOCAL_PATH } from "@/lib/simulation";
+import { getYoutubeVideoId } from "@/lib/simulation";
 
 interface Point {
   x: number;
@@ -14,8 +14,6 @@ interface ZoneEditorProps {
   imageUrl?: string;
   /** When set, show this stream (main camera) fully zoomed out so user draws zones on the live view. */
   streamUrl?: string;
-  /** When true, use demo feed if no stream (e.g. YouTube demo). */
-  simulationMode?: boolean;
   /** Reference resolution for zone points (default 1920x1080 to match Live feed). */
   refWidth?: number;
   refHeight?: number;
@@ -34,7 +32,6 @@ const ZONE_REF_HEIGHT = 1080;
 export function ZoneEditor({
   imageUrl,
   streamUrl,
-  simulationMode = false,
   refWidth = ZONE_REF_WIDTH,
   refHeight = ZONE_REF_HEIGHT,
   existingZones = [],
@@ -52,14 +49,9 @@ export function ZoneEditor({
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   const youtubeId = streamUrl ? getYoutubeVideoId(streamUrl) : null;
-  const useYoutube = !!youtubeId || (simulationMode && !!DEMO_VIDEO_YOUTUBE_ID);
-  const embedId = youtubeId || DEMO_VIDEO_YOUTUBE_ID || undefined;
-  const effectiveStreamUrl =
-    streamUrl && !youtubeId
-      ? streamUrl
-      : simulationMode && !useYoutube
-        ? DEMO_VIDEO_LOCAL_PATH
-        : undefined;
+  const useYoutube = !!youtubeId;
+  const embedId = youtubeId || undefined;
+  const effectiveStreamUrl = streamUrl && !youtubeId ? streamUrl : undefined;
 
   const REF_WIDTH = 800;
   const REF_HEIGHT = 450;

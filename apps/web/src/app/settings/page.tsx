@@ -3,24 +3,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button } from "@canopy-sight/ui";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { isSimulationMode } from "@/lib/simulation";
-
 export default function SettingsPage() {
-  const [simulationOn, setSimulationOn] = useState(false);
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
   return (
     <main className="canopy-page">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">
           Settings
-          {simulationOn && (
-            <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              Simulation
-            </span>
-          )}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">System configuration and preferences</p>
         <p className="text-xs text-muted-foreground mt-1">Choose a section below to manage notifications, user preferences, API keys, data retention, and exports.</p>

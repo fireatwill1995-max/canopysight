@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button, CardSkeleton, Skeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import dynamic from "next/dynamic";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
-import { isSimulationMode, getMockDetections } from "@/lib/simulation";
 
 // Lazy load heavy visualization components
 const FilterPanel = dynamic(
@@ -114,9 +113,6 @@ type DetectionItem = {
 
 export default function AnalyticsPage() {
   const canQuery = useCanUseProtectedTrpc();
-  const [simulationOn, setSimulationOn] = useState(false);
-  useEffect(() => { setSimulationOn(isSimulationMode()); }, []);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedThreatDay, setSelectedThreatDay] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "species" | "threats" | "coverage">("overview");
@@ -151,9 +147,9 @@ export default function AnalyticsPage() {
       endDate: filters.endDate,
       limit: 100,
     },
-    { enabled: canQuery && !simulationOn, retry: false }
+    { enabled: canQuery, retry: false }
   );
-  const detections = simulationOn ? getMockDetections(100) : apiDetections;
+  const detections = apiDetections;
 
   const { data: behavioralPatterns } = trpc.analytics.behavioralPatterns.useQuery(
     { siteId: filters.siteId, startDate: filters.startDate, endDate: filters.endDate },
@@ -379,9 +375,6 @@ export default function AnalyticsPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-2">
               Analytics
-              {simulationOn && (
-                <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">Simulation</span>
-              )}
               {biodiversity && (
                 <span className={`text-base font-bold px-3 py-0.5 rounded-full border ${biodiversityGradeColor} border-current`}>
                   BDI {biodiversity.score} — {biodiversity.grade}

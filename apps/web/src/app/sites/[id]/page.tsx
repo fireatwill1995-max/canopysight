@@ -7,15 +7,8 @@ import { useToast } from "@canopy-sight/ui";
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import {
-  isSimulationMode,
-  setSimulationMode,
-  getMockHazardsForLiveFeed,
-  HAZARD_REF_WIDTH,
-  HAZARD_REF_HEIGHT,
-  DEMO_VIDEO_YOUTUBE_ID,
-} from "@/lib/simulation";
 import type { HazardOverlay } from "@/components/live-video-feed";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 // Lazy load heavy components - only load when needed
 const LiveVideoFeed = dynamic(() => import("@/components/live-video-feed").then(mod => ({ default: mod.LiveVideoFeed })), {
@@ -54,34 +47,37 @@ export default function SiteDetailPage() {
   const siteId = params.id as string;
   const [activeTab, setActiveTab] = useState<"overview" | "live" | "zones" | "mesh">("overview");
   const [focusedDeviceId, setFocusedDeviceId] = useState<string | null>(null);
-  const [simulationOn, setSimulationOn] = useState(false);
-  const [hazardTimeSeed, setHazardTimeSeed] = useState(0);
   const [editingZone, setEditingZone] = useState<ZoneEntry | null>(null);
   const [editForm, setEditForm] = useState({ name: "", type: "exclusion" as string, cameraId: "" as string, isActive: true });
-
-  // Sync simulation state from sessionStorage and from URL (?simulation=1 & ?tab=live)
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
-
-  // Animate mock hazard positions so the symbol moves with the person/car in simulation
-  useEffect(() => {
-    if (!simulationOn) return;
-    const id = setInterval(() => setHazardTimeSeed((t) => t + 1), 350);
-    return () => clearInterval(id);
-  }, [simulationOn]);
+  // Real-time detections from WebSocket — used for live bounding box overlay
+  const [liveDetections, setLiveDetections] = useState<HazardOverlay[]>([]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    const sim = searchParams.get("simulation");
     if (tab === "overview" || tab === "live" || tab === "zones" || tab === "mesh") {
       setActiveTab(tab);
     }
-    if (sim === "1" || sim === "true") {
-      setSimulationMode(true);
-      setSimulationOn(true);
-    }
   }, [searchParams]);
+
+  // Subscribe to real-time detection events from WebSocket
+  useWebSocket({
+    onDetection: (detection) => {
+      if (detection.siteId !== siteId) return;
+      if (!detection.boundingBox) return;
+      const overlay: HazardOverlay = {
+        id: detection.id,
+        type: detection.type,
+        boundingBox: detection.boundingBox,
+        confidence: detection.confidence,
+        riskScore: detection.riskScore,
+      };
+      setLiveDetections((prev) => {
+        // Replace existing detection with same id or prepend
+        const filtered = prev.filter((d) => d.id !== overlay.id);
+        return [overlay, ...filtered].slice(0, 30);
+      });
+    },
+  });
 
   const setTab = (tab: "overview" | "live" | "zones" | "mesh") => {
     setActiveTab(tab);
@@ -95,7 +91,7 @@ export default function SiteDetailPage() {
   const { data: devices } = trpc.device.list.useQuery({ siteId });
   const { data: detectionsData } = trpc.detection.list.useQuery(
     { siteId, limit: 40 },
-    { enabled: !!siteId && !simulationOn, refetchInterval: 12000 }
+    { enabled: !!siteId, refetchInterval: 8000 }
   );
 
   type DetectionItem = {
@@ -124,10 +120,14 @@ export default function SiteDetailPage() {
     riskScore: d.riskScore ?? undefined,
   });
 
-  const hazardsForDevice = (deviceId: string): HazardOverlay[] =>
-    simulationOn
-      ? getMockHazardsForLiveFeed(hazardTimeSeed * 400)
-      : detections.filter((d) => d.device?.id === deviceId).map(toHazard);
+  const hazardsForDevice = (deviceId: string): HazardOverlay[] => {
+    // Merge polling detections + real-time WS detections for this device
+    const polled = detections.filter((d) => d.device?.id === deviceId).map(toHazard);
+    const live = liveDetections.filter((d) =>
+      polled.every((p) => p.id !== d.id)
+    );
+    return [...live, ...polled].slice(0, 20);
+  };
 
   const { addToast } = useToast();
   const utils = trpc.useUtils();
@@ -246,29 +246,6 @@ export default function SiteDetailPage() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-2">{site.description || "No description"}</p>
         <p className="text-xs sm:text-sm text-gray-500 mt-1 break-words">
           Location: {site.latitude}, {site.longitude}
-        </p>
-      </div>
-
-      {/* Simulation toggle – visible on every tab so users can find it */}
-      <div className="mb-4 p-4 rounded-lg border-2 border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-900/20">
-        <label className="flex flex-wrap items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={simulationOn}
-            onChange={(e) => {
-              const on = e.target.checked;
-              setSimulationMode(on);
-              setSimulationOn(on);
-            }}
-            className="rounded border-amber-500 w-5 h-5 accent-amber-600"
-          />
-          <span className="font-semibold text-amber-900 dark:text-amber-100">Enable simulation mode</span>
-          <span className="text-sm text-amber-800 dark:text-amber-200">
-            – Demo video and sample alerts in <button type="button" onClick={() => setActiveTab("live")} className="underline font-medium">Live Feed</button>
-          </span>
-        </label>
-        <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-          Show buyers how the app works with a mock camera feed and rail-safety alerts. Turn on, then open the Live Feed tab.
         </p>
       </div>
 
@@ -424,39 +401,10 @@ export default function SiteDetailPage() {
 
       {activeTab === "live" && (
         <div className="space-y-6">
-          {/* Simulation toggle for demos: mock camera + mock alerts */}
-          <Card className="border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
-            <CardHeader>
-              <CardTitle className="text-base">Demo / Simulation</CardTitle>
-              <CardDescription>
-                Show potential buyers how the app works with a mock camera feed (train station style) and sample alerts—no real devices required.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={simulationOn}
-                  onChange={(e) => {
-                    const on = e.target.checked;
-                    setSimulationMode(on);
-                    setSimulationOn(on);
-                  }}
-                  className="rounded border-gray-300"
-                />
-                <span className="font-medium">Enable simulation mode</span>
-              </label>
-              <p className="text-xs text-gray-500 mt-2">
-                When on: live view uses a demo video and the alert feed shows sample rail-safety alerts.
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Alerts for this site that can auto-focus a device */}
+          {/* Alerts for this site — alerts auto-focus a device */}
           <LiveAlertFeed
             siteIdFilter={siteId}
             deviceIdFilter={focusedDevice?.id}
-            simulationMode={simulationOn}
             onAlertFocus={(alert) => {
               if (alert.siteId === siteId && alert.deviceId) {
                 setFocusedDeviceId(alert.deviceId);
@@ -471,7 +419,7 @@ export default function SiteDetailPage() {
                 <CardHeader>
                   <CardTitle>Focused Camera</CardTitle>
                   <CardDescription>
-                    Select a device to focus on, or let alerts auto-select the source device. Detected persons and objects are highlighted with a green box on the feed.
+                    Real-time AI detections are highlighted with green bounding boxes. Alerts auto-select the source device.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -479,7 +427,7 @@ export default function SiteDetailPage() {
                     <select
                       value={focusedDevice?.id ?? ""}
                       onChange={(e) => setFocusedDeviceId(e.target.value || null)}
-                      className="px-3 py-2 border rounded-lg min-h-[44px]"
+                      className="px-3 py-2 border rounded-lg min-h-[44px] bg-background text-foreground border-border"
                     >
                       {devices.map((d: { id: string; name: string; status: string }) => (
                         <option key={d.id} value={d.id}>
@@ -493,7 +441,6 @@ export default function SiteDetailPage() {
                       deviceId={focusedDevice.id}
                       siteId={siteId}
                       streamUrl={(focusedDevice as { streamUrl?: string }).streamUrl}
-                      simulationMode={simulationOn}
                       zones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
                         id: z.id,
                         name: z.name,
@@ -501,83 +448,50 @@ export default function SiteDetailPage() {
                         type: z.type,
                       }))}
                       hazards={hazardsForDevice(focusedDevice.id)}
-                      hazardRefWidth={HAZARD_REF_WIDTH}
-                      hazardRefHeight={HAZARD_REF_HEIGHT}
                     />
                   ) : (
-                    <p className="text-gray-500">Select a device to view its live feed.</p>
+                    <p className="text-muted-foreground">Select a device to view its live feed.</p>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Multi-view of all site cameras/devices */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Multi-View</CardTitle>
-                  <CardDescription>All cameras/devices at this site.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {devices.map((device: { id: string; name?: string; status?: string }) => (
-                      <LiveVideoFeed
-                        key={device.id}
-                        deviceId={device.id}
-                        siteId={siteId}
-                        streamUrl={(device as { streamUrl?: string }).streamUrl}
-                        simulationMode={simulationOn}
-                        zones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
-                          id: z.id,
-                          name: z.name,
-                          points: (z.points as Array<{ x: number; y: number }>) || [],
-                          type: z.type,
-                        }))}
-                        hazards={hazardsForDevice(device.id)}
-                        hazardRefWidth={HAZARD_REF_WIDTH}
-                        hazardRefHeight={HAZARD_REF_HEIGHT}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              {/* When no devices: still show simulation feed so buyers can see the app */}
-              {simulationOn && (
+              {/* Multi-view of all site cameras */}
+              {devices.length > 1 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Live Feed (Simulation)</CardTitle>
-                    <CardDescription>
-                      Mock camera view—add devices to this site to see real streams.
-                    </CardDescription>
+                    <CardTitle>Multi-View</CardTitle>
+                    <CardDescription>All cameras at this site with real-time AI detections.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <LiveVideoFeed
-                      deviceId="sim-device-1"
-                      siteId={siteId}
-                      simulationMode={true}
-                      zones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
-                        id: z.id,
-                        name: z.name,
-                        points: (z.points as Array<{ x: number; y: number }>) || [],
-                        type: z.type,
-                      }))}
-                      hazards={getMockHazardsForLiveFeed(hazardTimeSeed * 400)}
-                      hazardRefWidth={HAZARD_REF_WIDTH}
-                      hazardRefHeight={HAZARD_REF_HEIGHT}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {!simulationOn && (
-                <Card>
-                  <CardContent className="p-8 text-center text-gray-500">
-                    <p>No devices available for live feed</p>
-                    <p className="text-sm mt-2">Enable simulation mode above to show a demo feed without devices.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {devices.map((device: { id: string; name?: string; status?: string }) => (
+                        <LiveVideoFeed
+                          key={device.id}
+                          deviceId={device.id}
+                          siteId={siteId}
+                          streamUrl={(device as { streamUrl?: string }).streamUrl}
+                          zones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
+                            id: z.id,
+                            name: z.name,
+                            points: (z.points as Array<{ x: number; y: number }>) || [],
+                            type: z.type,
+                          }))}
+                          hazards={hazardsForDevice(device.id)}
+                        />
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}
             </>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <div className="text-4xl mb-3">📡</div>
+                <p className="font-medium">No devices configured for this site</p>
+                <p className="text-sm mt-2">Add a camera or edge device in the Devices section to start monitoring.</p>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
@@ -609,18 +523,13 @@ export default function SiteDetailPage() {
                   </select>
                 </div>
               )}
-              {focusedDevice || simulationOn ? (
+              {focusedDevice ? (
                 <ZoneEditor
-                  streamUrl={
-                    ((focusedDevice ?? devices?.[0]) as { streamUrl?: string })?.streamUrl?.trim()
-                      ? ((focusedDevice ?? devices?.[0]) as { streamUrl?: string }).streamUrl
-                      : simulationOn
-                        ? `https://www.youtube.com/watch?v=${DEMO_VIDEO_YOUTUBE_ID}`
-                        : undefined
-                  }
-                  simulationMode={simulationOn}
-                  refWidth={HAZARD_REF_WIDTH}
-                  refHeight={HAZARD_REF_HEIGHT}
+                  streamUrl={((focusedDevice ?? devices?.[0]) as { streamUrl?: string })?.streamUrl?.trim()
+                    ? ((focusedDevice ?? devices?.[0]) as { streamUrl?: string }).streamUrl
+                    : undefined}
+                  refWidth={1920}
+                  refHeight={1080}
                   existingZones={(zones as ZoneEntry[] | undefined)?.map((z: ZoneEntry) => ({
                     id: z.id,
                     name: z.name,

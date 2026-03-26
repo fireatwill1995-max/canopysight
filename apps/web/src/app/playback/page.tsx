@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@canopy-sight/ui";
 import { Button, Skeleton, CardSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
 import { EventPlayback } from "@/components/event-playback";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
-import { isSimulationMode, getMockPlaybackEvents } from "@/lib/simulation";
 
 type PlaybackEvent = {
   id: string;
@@ -21,10 +20,6 @@ type PlaybackEvent = {
 export default function PlaybackPage() {
   const { addToast: _addToast } = useToast();
   const canQuery = useCanUseProtectedTrpc();
-  const [simulationOn, setSimulationOn] = useState(false);
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
   const { data: sites, isLoading: sitesLoading } = trpc.site.list.useQuery(undefined, {
     enabled: canQuery,
     retry: false,
@@ -48,11 +43,10 @@ export default function PlaybackPage() {
       startDate: startDt ?? new Date(0),
       endDate: endDt ?? new Date(),
     },
-    { enabled: Boolean(canQuery && siteId && !simulationOn && dateRangeValid), retry: false }
+    { enabled: Boolean(canQuery && siteId && dateRangeValid), retry: false }
   );
 
   const playbackEvents: PlaybackEvent[] = useMemo(() => {
-    if (simulationOn) return getMockPlaybackEvents();
     if (!dateRangeValid || !siteId) return [];
     const detections = historyQuery.data?.series?.detections ?? [];
     return detections.map((d: { id: string; type: string; confidence?: number; timestamp: string; boundingBox?: unknown }) => ({
@@ -63,7 +57,7 @@ export default function PlaybackPage() {
       boundingBox: (d.boundingBox as { x: number; y: number; width: number; height: number }) ?? { x: 0, y: 0, width: 0, height: 0 },
       videoClipUrl: undefined,
     }));
-  }, [simulationOn, historyQuery.data, dateRangeValid, siteId]);
+  }, [historyQuery.data, dateRangeValid, siteId]);
 
   const selected = playbackEvents.find((e) => e.id === selectedEventId) ?? null;
 
@@ -90,11 +84,6 @@ export default function PlaybackPage() {
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-2">
           Playback
-          {simulationOn && (
-            <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              Simulation
-            </span>
-          )}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
           Time-based playback (“what changed”) for a single environment

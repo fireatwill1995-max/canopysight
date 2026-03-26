@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@cano
 import { Button } from "@canopy-sight/ui";
 import { AlertCardSkeleton } from "@canopy-sight/ui";
 import { useToast } from "@canopy-sight/ui";
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { isSimulationMode, getMockAlertsForList } from "@/lib/simulation";
+import { useState, useMemo, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type AlertItem = {
@@ -87,14 +86,12 @@ function TimelineView({
   onResolve,
   pendingAckId,
   pendingResolveId,
-  simulationOn,
 }: {
   alerts: AlertItem[];
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
   pendingAckId: string | null;
   pendingResolveId: string | null;
-  simulationOn: boolean;
 }) {
   if (alerts.length === 0) return null;
 
@@ -145,7 +142,7 @@ function TimelineView({
                     variant="outline"
                     size="sm"
                     onClick={() => onAcknowledge(alert.id)}
-                    disabled={simulationOn || pendingAckId === alert.id || pendingResolveId === alert.id}
+                    disabled={pendingAckId === alert.id || pendingResolveId === alert.id}
                     className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 min-h-[32px] text-xs"
                   >
                     {pendingAckId === alert.id ? "…" : "Ack"}
@@ -154,7 +151,7 @@ function TimelineView({
                     variant="outline"
                     size="sm"
                     onClick={() => onResolve(alert.id)}
-                    disabled={simulationOn || pendingResolveId === alert.id || pendingAckId === alert.id}
+                    disabled={pendingResolveId === alert.id || pendingAckId === alert.id}
                     className="border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 min-h-[32px] text-xs"
                   >
                     {pendingResolveId === alert.id ? "…" : "Resolve"}
@@ -179,20 +176,11 @@ export default function AlertsPage() {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "severity">("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [simulationOn, setSimulationOn] = useState(false);
   const [pendingAckId, setPendingAckId] = useState<string | null>(null);
   const [pendingResolveId, setPendingResolveId] = useState<string | null>(null);
   const [bulkPending, setBulkPending] = useState(false);
 
-  useEffect(() => {
-    setSimulationOn(isSimulationMode());
-  }, []);
-
-  const { data: apiData, isLoading, error, refetch } = trpc.alert.list.useQuery(
-    { limit: 200 },
-    { enabled: !simulationOn }
-  );
-  const data = simulationOn ? getMockAlertsForList(100) : apiData;
+  const { data, isLoading, error, refetch } = trpc.alert.list.useQuery({ limit: 200 });
 
   const acknowledgeMutation = trpc.alert.acknowledge.useMutation({
     onSuccess: () => {
@@ -223,13 +211,13 @@ export default function AlertsPage() {
   });
 
   const handleAcknowledge = (id: string) => {
-    if (acknowledgeMutation.isPending || simulationOn) return;
+    if (acknowledgeMutation.isPending) return;
     setPendingAckId(id);
     acknowledgeMutation.mutate({ id }, { onSettled: () => setPendingAckId(null) });
   };
 
   const handleResolve = (id: string) => {
-    if (resolveMutation.isPending || simulationOn) return;
+    if (resolveMutation.isPending) return;
     setPendingResolveId(id);
     resolveMutation.mutate({ id }, { onSettled: () => setPendingResolveId(null) });
   };
@@ -306,7 +294,7 @@ export default function AlertsPage() {
   }, [selectedIds.size, filteredAlerts]);
 
   const handleBulkAcknowledge = useCallback(async () => {
-    if (simulationOn || bulkPending) return;
+    if (bulkPending) return;
     setBulkPending(true);
     const ids = Array.from(selectedIds);
     for (const id of ids) {
@@ -316,10 +304,10 @@ export default function AlertsPage() {
     }
     setSelectedIds(new Set());
     setBulkPending(false);
-  }, [simulationOn, bulkPending, selectedIds, acknowledgeMutation]);
+  }, [bulkPending, selectedIds, acknowledgeMutation]);
 
   const handleBulkResolve = useCallback(async () => {
-    if (simulationOn || bulkPending) return;
+    if (bulkPending) return;
     setBulkPending(true);
     const ids = Array.from(selectedIds);
     for (const id of ids) {
@@ -329,7 +317,7 @@ export default function AlertsPage() {
     }
     setSelectedIds(new Set());
     setBulkPending(false);
-  }, [simulationOn, bulkPending, selectedIds, resolveMutation]);
+  }, [bulkPending, selectedIds, resolveMutation]);
 
   const handleBulkExport = useCallback(() => {
     const selected = filteredAlerts.filter((a) => selectedIds.has(a.id));
@@ -367,11 +355,6 @@ export default function AlertsPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-2">
               Alerts
-              {simulationOn && (
-                <span className="text-sm font-normal px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                  Simulation
-                </span>
-              )}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Real-time safety alerts and notifications
@@ -514,7 +497,7 @@ export default function AlertsPage() {
               size="sm"
               variant="outline"
               onClick={handleBulkAcknowledge}
-              disabled={bulkPending || simulationOn}
+              disabled={bulkPending}
               className="min-h-[36px] border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 text-xs"
             >
               {bulkPending ? "Processing…" : "Acknowledge Selected"}
@@ -523,7 +506,7 @@ export default function AlertsPage() {
               size="sm"
               variant="outline"
               onClick={handleBulkResolve}
-              disabled={bulkPending || simulationOn}
+              disabled={bulkPending}
               className="min-h-[36px] border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 text-xs"
             >
               Resolve Selected
@@ -549,11 +532,11 @@ export default function AlertsPage() {
       </div>
 
       {/* ─── Content ─────────────────────────────────────────────────────── */}
-      {!simulationOn && isLoading ? (
+      {isLoading ? (
         <div className="space-y-4">
           <AlertCardSkeleton count={3} />
         </div>
-      ) : !simulationOn && error ? (
+      ) : error ? (
         <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl">
           <p className="text-red-800 dark:text-red-400 text-sm">
             Error loading alerts: {error.message}
@@ -570,7 +553,6 @@ export default function AlertsPage() {
                 onResolve={handleResolve}
                 pendingAckId={pendingAckId}
                 pendingResolveId={pendingResolveId}
-                simulationOn={simulationOn}
               />
             </div>
           ) : (
@@ -630,9 +612,9 @@ export default function AlertsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleAcknowledge(alert.id)}
-                              disabled={simulationOn || pendingAckId === alert.id || pendingResolveId === alert.id}
+                              disabled={pendingAckId === alert.id || pendingResolveId === alert.id}
                               className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 min-h-[40px] touch-manipulation text-xs"
-                              title={simulationOn ? "Disabled in simulation mode" : "Acknowledge"}
+                              title="Acknowledge"
                             >
                               {pendingAckId === alert.id ? "Acknowledging…" : "Acknowledge"}
                             </Button>
@@ -640,9 +622,9 @@ export default function AlertsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleResolve(alert.id)}
-                              disabled={simulationOn || pendingResolveId === alert.id || pendingAckId === alert.id}
+                              disabled={pendingResolveId === alert.id || pendingAckId === alert.id}
                               className="border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 min-h-[40px] touch-manipulation text-xs"
-                              title={simulationOn ? "Disabled in simulation mode" : "Resolve"}
+                              title="Resolve"
                             >
                               {pendingResolveId === alert.id ? "Resolving…" : "Resolve"}
                             </Button>
