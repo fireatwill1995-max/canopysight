@@ -14,6 +14,8 @@ import { serveOpenAPISpec, serveSwaggerUI } from "./middleware/openapi";
 import { setWsServerRef } from "./services/ws-server-ref";
 import { alertDispatcher } from "./services/alert-dispatcher";
 import { createHealthRouter } from "./router/health.router";
+import Anthropic from "@anthropic-ai/sdk";
+import { prisma } from "@canopy-sight/database";
 
 setupSentry();
 
@@ -83,6 +85,137 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // GET /health/ready   — readiness probe (DB + Redis)
 // GET /health/detailed — full system status (requires x-health-key header)
 app.use("/health", createHealthRouter());
+
+// ── Canopy Copilot SSE streaming endpoint ─────────────────────────────────
+// POST /ai/stream  { message, siteId?, organizationId? }
+// Returns: text/event-stream  data: {"type":"delta","text":"..."}\n\n
+//          terminated by      data: {"type":"done"}\n\n
+//
+// This uses the Anthropic streaming API directly because tRPC does not natively
+// support long-lived SSE streams for per-token delivery.
+
+const AI_STREAM_SYSTEM_PROMPT = `You are Canopy Copilot, the intelligence officer for Canopy Sight wildlife surveillance platform.
+You have access to real-time detection data, alerts, and site intelligence.
+You speak with authority about wildlife conservation and anti-poaching operations.
+Always ground your responses in the actual data provided. Cite specific numbers.
+Be actionable - every response should include at least one concrete recommendation.`;
+
+app.post("/ai/stream", async (req: express.Request, res: express.Response) => {
+  const { message, siteId, organizationId } = req.body as {
+    message?: string;
+    siteId?: string;
+    organizationId?: string;
+  };
+
+  if (!message || typeof message !== "string" || message.trim().length === 0) {
+    res.status(400).json({ error: "message is required" });
+    return;
+  }
+
+  // Set SSE headers — must be done before any writing
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering on Fly.io
+  res.flushHeaders();
+
+  const sendEvent = (payload: Record<string, unknown>) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  // Keep-alive ping so the connection doesn't time out on Fly.io (30s limit)
+  const keepAliveTimer = setInterval(() => {
+    res.write(": keep-alive\n\n");
+  }, 15_000);
+
+  const cleanup = () => {
+    clearInterval(keepAliveTimer);
+  };
+
+  req.on("close", cleanup);
+
+  try {
+    // Build live context snippet from DB
+    let contextSnippet = "";
+    try {
+      const orgId = organizationId || "demo-org";
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      const [alertCount, detectionCount] = await Promise.all([
+        prisma.alert.count({
+          where: {
+            ...(siteId ? { siteId } : {}),
+            status: { in: ["active", "acknowledged"] },
+            createdAt: { gte: last24h },
+            // organizationId filter — use slug-based lookup only if real org lookup is available
+          },
+        }),
+        prisma.detectionEvent.count({
+          where: {
+            ...(siteId ? { siteId } : {}),
+            timestamp: { gte: last24h },
+          },
+        }),
+      ]);
+
+      contextSnippet = `\n\n[Live context: ${detectionCount} detection(s) and ${alertCount} active alert(s) in the last 24 hours${siteId ? ` at this site` : ``}.]`;
+    } catch {
+      // Non-fatal — continue without live context
+    }
+
+    const userContent = message + contextSnippet;
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      // Demo mode — simulate a streaming response
+      const demoText = `[Canopy Copilot — Demo Mode]\n\nYou asked: "${message}"\n\nTo enable real AI streaming, set the ANTHROPIC_API_KEY environment variable on the server.`;
+      for (const char of demoText) {
+        sendEvent({ type: "delta", text: char });
+      }
+      sendEvent({ type: "done" });
+      cleanup();
+      res.end();
+      return;
+    }
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const stream = await client.messages.stream({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2048,
+      system: AI_STREAM_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userContent }],
+    });
+
+    stream.on("text", (text) => {
+      sendEvent({ type: "delta", text });
+    });
+
+    stream.on("error", (error) => {
+      logger.error("AI stream error", error);
+      sendEvent({ type: "error", message: error.message ?? "Stream error" });
+      cleanup();
+      res.end();
+    });
+
+    stream.on("finalMessage", (msg) => {
+      sendEvent({
+        type: "done",
+        model: msg.model,
+        inputTokens: msg.usage.input_tokens,
+        outputTokens: msg.usage.output_tokens,
+      });
+      cleanup();
+      res.end();
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    logger.error("AI stream endpoint error", error);
+    sendEvent({ type: "error", message });
+    cleanup();
+    res.end();
+  }
+});
 
 // tRPC middleware with error handling
 app.use(

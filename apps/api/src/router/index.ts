@@ -16,6 +16,10 @@ import { fileRouter } from "./file.router";
 import { jobRouter } from "./job.router";
 import { projectRouter } from "./project.router";
 import { missionRouter } from "./mission.router";
+import { aiRouter } from "./ai.router";
+import { droneRouter } from "./drone.router";
+import { patrolRouter } from "./patrol.router";
+import { evidenceRouter } from "./evidence.router";
 
 export const appRouter = router({
   site: siteRouter,
@@ -35,6 +39,10 @@ export const appRouter = router({
   job: jobRouter,
   project: projectRouter,
   mission: missionRouter,
+  ai: aiRouter,
+  drone: droneRouter,
+  patrol: patrolRouter,
+  evidence: evidenceRouter,
 });
 
 export type AppRouter = typeof appRouter;

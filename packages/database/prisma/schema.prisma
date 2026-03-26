@@ -34,6 +34,14 @@ model Organization {
   systemHealth       SystemHealth[]
   auditLogs          AuditLog[]
   notificationPrefs  NotificationPreference[]
+  species            Species[]
+  droneAssets        DroneAsset[]
+  droneMissions      DroneMission[]
+  patrolTracks       PatrolTrack[]
+  riskGridCells      RiskGridCell[]
+  acousticEvents     AcousticEvent[]
+  evidencePackages   EvidencePackage[]
+  escalationPolicies AlertEscalationPolicy[]
 
   @@index([slug])
 }
@@ -76,6 +84,12 @@ model Site {
   videoClips     VideoClip[]
   heatmaps       Heatmap[]
   incidentReports IncidentReport[]
+  species        Species[]
+  droneAssets    DroneAsset[]
+  droneMissions  DroneMission[]
+  patrolTracks   PatrolTrack[]
+  riskGridCells  RiskGridCell[]
+  acousticEvents AcousticEvent[]
 
   @@index([organizationId])
   @@index([latitude, longitude])
@@ -433,4 +447,235 @@ model NotificationPreference {
   @@index([organizationId])
   @@index([userId])
   @@index([isActive])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WORLD-LEADING WILDLIFE SURVEILLANCE FEATURES
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Species registry - tracks wildlife species observed at sites
+model Species {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String?
+  commonName      String   // "African Elephant"
+  scientificName  String?  // "Loxodonta africana"
+  iucnStatus      String?  // "VU", "EN", "CR", "NT", "LC"
+  detectionLabel  String   // Maps to DetectionEvent.type (e.g., "elephant")
+  firstDetected   DateTime @default(now())
+  lastDetected    DateTime @default(now())
+  totalDetections Int      @default(0)
+  averageConfidence Float  @default(0)
+  monthlyTrend    String   @default("stable") // "increasing", "decreasing", "stable"
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site?        @relation(fields: [siteId], references: [id])
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([detectionLabel])
+}
+
+// Drone fleet management
+model DroneAsset {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String?
+  name            String
+  model           String?  // "DJI Mavic 3T", "Autel EVO II"
+  serialNumber    String?
+  status          String   @default("ground") // "ground", "flying", "charging", "maintenance", "offline"
+  batteryLevel    Float?   // 0-100
+  batteryHealth   Float?   // 0-100 (degraded battery indicator)
+  flightHours     Float    @default(0)
+  totalFlights    Int      @default(0)
+  lastFlightAt    DateTime?
+  maintenanceDueAt DateTime?
+  firmware        String?
+  latitude        Float?
+  longitude       Float?
+  altitude        Float?
+  heading         Float?
+  speed           Float?
+  lastTelemetryAt DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site?        @relation(fields: [siteId], references: [id])
+  missions        DroneMission[]
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([status])
+}
+
+// Drone mission planning and tracking
+model DroneMission {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String
+  droneId         String?
+  name            String
+  status          String   @default("planned") // "planned", "active", "completed", "aborted", "failed"
+  missionType     String   @default("patrol") // "patrol", "survey", "response", "inspection"
+  waypoints       Json?    // Array of { lat, lng, altitude, action?, dwellTime? }
+  flightPath      Json?    // Actual recorded flight path
+  plannedDuration Int?     // seconds
+  actualDuration  Int?     // seconds
+  coverageArea    Float?   // km²
+  maxAltitude     Float?   // meters
+  plannedAt       DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  pilotId         String?  // User ID
+  weatherConditions Json?  // { windSpeed, visibility, temperature, conditions }
+  aiRecommendations String? // AI-generated recommendations before flight
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site         @relation(fields: [siteId], references: [id])
+  drone           DroneAsset?  @relation(fields: [droneId], references: [id])
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([droneId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Patrol tracking for rangers
+model PatrolTrack {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String
+  userId          String?  // Ranger user ID
+  rangerName      String?  // For non-user-account rangers
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  trackPoints     Json     @default("[]") // Array of { lat, lng, timestamp, accuracy }
+  distanceKm      Float    @default(0)
+  durationMinutes Int      @default(0)
+  zonesPatrolled  Json     @default("[]") // Zone IDs covered
+  observationsCount Int    @default(0)
+  status          String   @default("active") // "active", "completed", "abandoned"
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site         @relation(fields: [siteId], references: [id])
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([startedAt])
+}
+
+// Threat risk grid - spatial risk assessment per grid cell
+model RiskGridCell {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String
+  gridX           Int      // Grid column
+  gridY           Int      // Grid row
+  gridResolution  Int      @default(100) // meters per cell
+  riskScore       Float    @default(0)  // 0-1
+  threatLevel     String   @default("low") // "low", "medium", "high", "critical"
+  incidentCount   Int      @default(0)
+  detectionCount  Int      @default(0)
+  lastIncidentAt  DateTime?
+  factors         Json?    // { historical, temporal, environmental, patrolGap }
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site         @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, gridX, gridY, gridResolution])
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([riskScore])
+}
+
+// Acoustic events from audio sensors
+model AcousticEvent {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String
+  deviceId        String?
+  timestamp       DateTime @default(now())
+  eventType       String   // "gunshot", "chainsaw", "vehicle", "species_call", "distress"
+  species         String?  // For species vocalization events
+  confidence      Float    // 0-1
+  audioClipPath   String?  // Path to audio clip in storage
+  durationSeconds Float?
+  latitude        Float?
+  longitude       Float?
+  alertTriggered  Boolean  @default(false)
+  alertId         String?  // If this created an alert
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  site            Site         @relation(fields: [siteId], references: [id])
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([timestamp])
+  @@index([eventType])
+}
+
+// Evidence packages for law enforcement
+model EvidencePackage {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String?
+  packageNumber   String   @unique // e.g., "EVP-2026-001"
+  title           String
+  status          String   @default("draft") // "draft", "finalized", "submitted"
+  incidentIds     Json     @default("[]")   // Related incident IDs
+  detectionIds    Json     @default("[]")   // Related detection event IDs
+  summary         String?  // AI-generated summary
+  timeline        Json     @default("[]")   // Chronological event list
+  evidenceItems   Json     @default("[]")   // Files, screenshots, clips
+  chainOfCustody  String?  // SHA-256 hash of package contents
+  createdById     String?  // User who created
+  finalizedAt     DateTime?
+  submittedAt     DateTime?
+  lawEnforcementRef String? // Reference number from LE agency
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Alert escalation policies
+model AlertEscalationPolicy {
+  id              String   @id @default(cuid())
+  organizationId  String
+  siteId          String?
+  name            String
+  isActive        Boolean  @default(true)
+  triggerAfterMinutes Int  @default(15) // Escalate if not ack'd in N minutes
+  alertSeverities Json     @default("[\"critical\", \"high\"]") // Which severities trigger
+  escalateTo      Json     @default("[]") // User IDs or role names
+  channels        Json     @default("[\"sms\", \"email\"]") // Notification channels
+  maxEscalations  Int      @default(3)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
 }

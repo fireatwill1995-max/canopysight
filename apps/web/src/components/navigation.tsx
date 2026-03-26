@@ -23,12 +23,15 @@ const CloseIcon = () => (
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/command", label: "Command" },
+  { href: "/impact", label: "Impact" },
   { href: "/sites", label: "Sites" },
   { href: "/devices", label: "Devices" },
   { href: "/alerts", label: "Alerts" },
   { href: "/incidents", label: "Incidents" },
   { href: "/playback", label: "Playback" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/species", label: "Species" },
   { href: "/settings", label: "Settings" },
 ];
 
