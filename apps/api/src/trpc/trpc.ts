@@ -7,7 +7,7 @@ import { logger } from "@canopy-sight/config";
 
 const rateLimiter = new RateLimiter(
   Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
-  Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 200
+  Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 600
 );
 
 const t = initTRPC.context<Context>().create({
