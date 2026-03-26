@@ -9,7 +9,7 @@ import { LiveAlertFeed } from "@/components/live-alert-feed";
 import { ThreatScoreGauge } from "@/components/threat-score-gauge";
 import { ShiftBriefingPanel } from "@/components/shift-briefing-panel";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useCanUseProtectedTrpc } from "@/lib/can-use-protected-trpc";
 
 // Compute threat score from real or mock data
