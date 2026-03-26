@@ -180,7 +180,7 @@ export default function AlertsPage() {
   const [pendingResolveId, setPendingResolveId] = useState<string | null>(null);
   const [bulkPending, setBulkPending] = useState(false);
 
-  const { data, isLoading, error, refetch } = trpc.alert.list.useQuery({ limit: 200 });
+  const { data, isLoading, error, refetch } = trpc.alert.list.useQuery({ limit: 100 });
 
   const acknowledgeMutation = trpc.alert.acknowledge.useMutation({
     onSuccess: () => {
