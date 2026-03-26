@@ -1,0 +1,91 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Canopy Sight — Master Class Taxonomy
+# Used by both the YOLO11 detector and the edge-agent class mapper.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Detection Classes (YOLO11 output) ────────────────────────────────────────
+detection_classes:
+  # Humans
+  0:  person             # Any human presence
+  1:  person_group       # 3+ people clustered (poaching party indicator)
+
+  # Vehicles
+  2:  vehicle_4wd        # 4WD / SUV / off-road (poaching transport)
+  3:  vehicle_truck      # Large truck
+  4:  vehicle_motorbike  # Motorbike / ATV
+  5:  vehicle_boat       # Boat / watercraft
+
+  # African mega-fauna (high conservation priority)
+  6:  elephant
+  7:  lion
+  8:  leopard
+  9:  rhinoceros
+  10: buffalo
+  11: zebra
+  12: giraffe
+  13: hippopotamus
+  14: crocodile
+  15: cheetah
+  16: wild_dog           # African wild dog (EN)
+  17: hyena
+  18: pangolin           # Critically trafficked
+  19: primate            # Baboon, vervet, chimp
+
+  # Other wildlife
+  20: bird               # Vulture, raptor, waterbird
+  21: reptile            # Snake, monitor lizard
+
+  # Threats / contraband
+  22: drone              # Unauthorised UAV
+  23: weapon             # Firearm / rifle visible
+  24: snare              # Wire snare on ground
+  25: trap               # Leg-hold trap or cage
+
+# ── Behavior Flags (behavior classifier output) ───────────────────────────────
+# Applied as a post-detection overlay on tracked person/vehicle objects.
+behavior_classes:
+  0: walking             # Normal upright gait
+  1: running             # High-velocity movement (fleeing / chasing)
+  2: crouching           # Low posture — hiding or setting trap
+  3: stationary          # Not moving (loitering)
+  4: climbing            # Fence / obstacle traversal
+  5: carrying            # Carrying object / carcass / bag
+  6: crawling            # Belly-to-ground movement
+  7: fighting            # Aggressive physical interaction
+
+# ── Risk mapping — behavior → base risk addition ─────────────────────────────
+behavior_risk_delta:
+  walking:    0
+  running:    20
+  crouching:  35
+  stationary: 10
+  climbing:   45   # Fence breach
+  carrying:   30
+  crawling:   40
+  fighting:   50
+
+# ── Species conservation tiers (drive alert severity) ────────────────────────
+species_tiers:
+  critical:     [rhinoceros, pangolin, wild_dog, cheetah]
+  high:         [elephant, leopard, lion, hippopotamus, crocodile]
+  medium:       [buffalo, zebra, giraffe, hyena, primate]
+  low:          [bird, reptile]
+
+# ── COCO-to-Canopy class remapping (for fine-tuning from COCO weights) ────────
+coco_remap:
+  # COCO name  → Canopy class name
+  person:      person
+  car:         vehicle_4wd
+  truck:       vehicle_truck
+  motorcycle:  vehicle_motorbike
+  boat:        vehicle_boat
+  elephant:    elephant
+  zebra:       zebra
+  giraffe:     giraffe
+  bird:        bird
+  horse:       null       # Not relevant — skip
+  sheep:       null
+  cow:         null
+  bear:        null
+  dog:         null
+  cat:         null

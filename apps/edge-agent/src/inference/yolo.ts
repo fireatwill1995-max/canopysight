@@ -345,29 +345,102 @@ export class YOLODetector {
   }
 
   /**
-   * Map model class name to our detection type
+   * Map model class name to our detection type.
+   * Handles all 26 Canopy wildlife/security classes plus COCO fallbacks.
    */
   private mapClassNameToType(className: string): DetectionType {
-    const lower = className.toLowerCase();
+    const lower = className.toLowerCase().trim();
 
-    if (lower.includes("person") || lower.includes("pedestrian") || lower.includes("people")) {
+    // ── Canopy fine-tuned classes (exact match first) ───────────────────────
+    const exactMap: Record<string, DetectionType> = {
+      // People
+      person:           "person",
+      person_group:     "person_group",
+      // Vehicles
+      vehicle_4wd:      "vehicle_4wd",
+      vehicle_truck:    "vehicle_truck",
+      vehicle_motorbike:"vehicle_motorbike",
+      vehicle_boat:     "vehicle_boat",
+      // African mega-fauna
+      elephant:         "elephant",
+      lion:             "lion",
+      leopard:          "leopard",
+      rhinoceros:       "rhinoceros",
+      rhino:            "rhinoceros",
+      buffalo:          "buffalo",
+      zebra:            "zebra",
+      giraffe:          "giraffe",
+      hippopotamus:     "hippopotamus",
+      hippo:            "hippopotamus",
+      crocodile:        "crocodile",
+      cheetah:          "cheetah",
+      wild_dog:         "wild_dog",
+      hyena:            "hyena",
+      pangolin:         "pangolin",
+      primate:          "primate",
+      baboon:           "primate",
+      chimpanzee:       "primate",
+      // Other wildlife
+      bird:             "bird",
+      reptile:          "reptile",
+      // Threats / contraband
+      drone:            "drone",
+      uav:              "drone",
+      weapon:           "weapon",
+      gun:              "weapon",
+      rifle:            "weapon",
+      snare:            "snare",
+      trap:             "trap",
+      // Legacy / generic
+      vehicle:          "vehicle",
+      animal:           "animal",
+      equipment:        "equipment",
+      debris:           "debris",
+    };
+
+    if (exactMap[lower]) return exactMap[lower];
+
+    // ── Fuzzy / COCO fallbacks ──────────────────────────────────────────────
+    if (lower.includes("person") || lower.includes("pedestrian") || lower.includes("people"))
       return "person";
-    }
-    if (lower.includes("car") || lower.includes("truck") || lower.includes("bus") ||
-        lower.includes("motorcycle") || lower.includes("bicycle") || lower.includes("vehicle") ||
-        lower.includes("train")) {
+    if (lower.includes("truck"))  return "vehicle_truck";
+    if (lower.includes("motorbike") || lower.includes("motorcycle")) return "vehicle_motorbike";
+    if (lower.includes("boat"))   return "vehicle_boat";
+    if (lower.includes("car") || lower.includes("4wd") || lower.includes("jeep") ||
+        lower.includes("suv"))    return "vehicle_4wd";
+    if (lower.includes("bus") || lower.includes("train") || lower.includes("vehicle"))
       return "vehicle";
-    }
-    if (lower.includes("dog") || lower.includes("cat") || lower.includes("animal") ||
-        lower.includes("horse") || lower.includes("bird")) {
-      return "animal";
-    }
-    if (lower.includes("equipment") || lower.includes("machinery") || lower.includes("tool")) {
+    if (lower.includes("elephant"))   return "elephant";
+    if (lower.includes("lion"))       return "lion";
+    if (lower.includes("leopard"))    return "leopard";
+    if (lower.includes("rhino"))      return "rhinoceros";
+    if (lower.includes("buffalo") || lower.includes("bison")) return "buffalo";
+    if (lower.includes("zebra"))      return "zebra";
+    if (lower.includes("giraffe"))    return "giraffe";
+    if (lower.includes("hippo"))      return "hippopotamus";
+    if (lower.includes("crocodile") || lower.includes("croc")) return "crocodile";
+    if (lower.includes("cheetah"))    return "cheetah";
+    if (lower.includes("wild_dog") || lower.includes("african dog")) return "wild_dog";
+    if (lower.includes("hyena"))      return "hyena";
+    if (lower.includes("pangolin"))   return "pangolin";
+    if (lower.includes("baboon") || lower.includes("chimp") || lower.includes("primate") ||
+        lower.includes("monkey"))     return "primate";
+    if (lower.includes("bird") || lower.includes("vulture") || lower.includes("eagle"))
+      return "bird";
+    if (lower.includes("reptile") || lower.includes("snake") || lower.includes("lizard"))
+      return "reptile";
+    if (lower.includes("drone") || lower.includes("uav") || lower.includes("quadcopter"))
+      return "drone";
+    if (lower.includes("gun") || lower.includes("rifle") || lower.includes("weapon") ||
+        lower.includes("firearm"))    return "weapon";
+    if (lower.includes("snare"))      return "snare";
+    if (lower.includes("trap"))       return "trap";
+    if (lower.includes("dog") || lower.includes("cat") || lower.includes("horse") ||
+        lower.includes("animal"))     return "animal";
+    if (lower.includes("equipment") || lower.includes("machinery") || lower.includes("tool"))
       return "equipment";
-    }
-    if (lower.includes("debris") || lower.includes("obstacle") || lower.includes("hazard")) {
+    if (lower.includes("debris") || lower.includes("obstacle") || lower.includes("hazard"))
       return "debris";
-    }
 
     return "unknown";
   }

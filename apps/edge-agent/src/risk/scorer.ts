@@ -1,5 +1,6 @@
-import { Detection, TrackedObject, RiskScore } from "../types";
+import { Detection, TrackedObject, RiskScore, CONSERVATION_TIER } from "../types";
 import { SORTTracker } from "../tracking/sort";
+import { BehaviorAnalyzer } from "../features/behavior-analyzer";
 
 /**
  * Risk scoring engine
@@ -34,13 +35,22 @@ export class RiskScorer {
     // Time of day factor (0-100)
     const timeOfDayFactor = this.calculateTimeOfDayFactor(timeOfDay);
 
-    // Weighted overall score
+    // Behavior factor — risk delta from classifier (0-50 mapped to 0-100)
+    const rawBehaviorDelta = BehaviorAnalyzer.riskDelta(trackedObject?.behavior);
+    const behaviorFactor   = Math.min(100, rawBehaviorDelta * 2);
+
+    // Threat factor — weapon / snare / trap / drone detected near person
+    const threatFactor = this.calculateThreatFactor(detection);
+
+    // Weighted overall score (weights sum to 1.0)
     const overall =
-      speedFactor * 0.2 +
-      directionFactor * 0.2 +
-      dwellTimeFactor * 0.2 +
-      zoneFactor * 0.3 +
-      timeOfDayFactor * 0.1;
+      speedFactor    * 0.15 +
+      directionFactor * 0.15 +
+      dwellTimeFactor * 0.15 +
+      zoneFactor      * 0.25 +
+      timeOfDayFactor * 0.10 +
+      behaviorFactor  * 0.10 +
+      threatFactor    * 0.10;
 
     return {
       overall: Math.min(100, Math.max(0, overall)),
@@ -49,6 +59,8 @@ export class RiskScorer {
       dwellTimeFactor,
       zoneFactor,
       timeOfDayFactor,
+      behaviorFactor,
+      threatFactor,
     };
   }
 
@@ -90,6 +102,22 @@ export class RiskScorer {
     // Critical zones (exclusion) have higher weight
     const factor = zoneIds.length * 25;
     return Math.min(100, factor);
+  }
+
+  /**
+   * Threat factor: direct weapon/snare/trap/drone detection = instant high risk.
+   * Also boosts score for critically threatened species near perimeter.
+   */
+  private calculateThreatFactor(detection: Detection): number {
+    // Direct threat objects
+    if (["weapon", "snare", "trap", "drone"].includes(detection.type)) return 100;
+
+    // Conservation tier boost — critically endangered species near humans
+    const tier = CONSERVATION_TIER[detection.type];
+    if (tier === "critical") return 60;
+    if (tier === "high")     return 30;
+
+    return 0;
   }
 
   private calculateTimeOfDayFactor(hour: number): number {

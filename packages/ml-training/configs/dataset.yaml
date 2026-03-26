@@ -1,0 +1,119 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Canopy Sight — YOLO11 Dataset Configuration
+# Run `python scripts/prepare_data.py` to download and merge all sources.
+# ─────────────────────────────────────────────────────────────────────────────
+
+path: ./data/canopy_detection    # Root dataset dir (created by prepare_data.py)
+train: images/train
+val:   images/val
+test:  images/test
+
+# 26 classes matching configs/classes.yaml detection_classes
+nc: 26
+names:
+  0:  person
+  1:  person_group
+  2:  vehicle_4wd
+  3:  vehicle_truck
+  4:  vehicle_motorbike
+  5:  vehicle_boat
+  6:  elephant
+  7:  lion
+  8:  leopard
+  9:  rhinoceros
+  10: buffalo
+  11: zebra
+  12: giraffe
+  13: hippopotamus
+  14: crocodile
+  15: cheetah
+  16: wild_dog
+  17: hyena
+  18: pangolin
+  19: primate
+  20: bird
+  21: reptile
+  22: drone
+  23: weapon
+  24: snare
+  25: trap
+
+# ── Data sources (downloaded by prepare_data.py) ─────────────────────────────
+sources:
+  - name: coco2017
+    type: coco
+    url: http://images.cocodataset.org
+    classes: [person, vehicle_4wd, vehicle_truck, vehicle_motorbike,
+              vehicle_boat, elephant, zebra, giraffe, bird]
+    split: [train2017, val2017]
+
+  - name: african_wildlife_roboflow
+    type: roboflow
+    workspace: roboflow-100
+    project: african-wildlife
+    version: 2
+    classes: [elephant, lion, rhinoceros, buffalo, zebra, giraffe,
+              leopard, cheetah, hippopotamus, crocodile]
+
+  - name: wildlife_detection_roboflow
+    type: roboflow
+    workspace: wildlife-monitoring
+    project: wildlife-detection-yolo
+    version: 1
+    classes: [elephant, lion, leopard, buffalo, zebra, giraffe,
+              hippopotamus, crocodile, hyena, wild_dog, cheetah]
+
+  - name: anti_poaching_roboflow
+    type: roboflow
+    workspace: anti-poaching-research
+    project: snare-detection
+    version: 1
+    classes: [person, snare, trap, weapon]
+
+  - name: drone_detection_roboflow
+    type: roboflow
+    workspace: roboflow-100
+    project: drone-detection-ewupy
+    version: 2
+    classes: [drone]
+
+  - name: openimages_v7_supplement
+    type: openimages
+    classes: [pangolin, wild_dog, primate, reptile, weapon]
+    max_per_class: 2000
+
+# ── Augmentation config (Albumentations pipeline) ────────────────────────────
+augmentation:
+  # Geometric
+  horizontal_flip: 0.5
+  vertical_flip: 0.0
+  rotate_limit: 15
+  random_crop: 0.3
+  perspective: 0.3
+
+  # Photometric — important for dawn/dusk/night surveillance footage
+  brightness_contrast: 0.4
+  hue_saturation: 0.3
+  rgb_shift: 0.2
+  gaussian_noise: 0.2
+  blur_limit: 5
+  motion_blur: 0.2
+
+  # Surveillance-specific
+  jpeg_compression: 0.3    # Simulate compressed CCTV stream
+  clahe: 0.3               # Low-light enhancement simulation
+  iso_noise: 0.2           # Night-vision noise simulation
+  rain: 0.15               # Adverse weather
+
+# ── Class weights (handle imbalance — rare species upweighted) ────────────────
+class_weights:
+  pangolin:   8.0
+  wild_dog:   6.0
+  cheetah:    5.0
+  rhinoceros: 5.0
+  snare:      7.0
+  trap:       7.0
+  weapon:     6.0
+  drone:      4.0
+  leopard:    3.0
+  lion:       3.0

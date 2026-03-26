@@ -6,9 +6,10 @@ import { ZoneAnalyzer } from "./zones/analyzer";
 import { RiskScorer } from "./risk/scorer";
 import { APIClient } from "./sync/api-client";
 import { OfflineQueue } from "./storage/queue";
-import { DetectionEvent } from "./types";
+import { DetectionEvent, CONSERVATION_TIER } from "./types";
 import { LoiteringDetector } from "./features/loitering-detector";
 import { PPEDetector } from "./features/ppe-detector";
+import { BehaviorAnalyzer } from "./features/behavior-analyzer";
 import { MeshConnectManager } from "./network/meshconnect";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
@@ -26,6 +27,7 @@ class EdgeAgent {
   private queue: OfflineQueue;
   private loiteringDetector: LoiteringDetector;
   private ppeDetector: PPEDetector;
+  private behaviorAnalyzer: BehaviorAnalyzer;
   private meshConnect: MeshConnectManager | null = null;
   private isRunning: boolean = false;
   private processingFrame: boolean = false;
@@ -43,6 +45,7 @@ class EdgeAgent {
     this.queue = new OfflineQueue();
     this.loiteringDetector = new LoiteringDetector();
     this.ppeDetector = new PPEDetector(process.env.ENABLE_PPE_DETECTION === "true");
+    this.behaviorAnalyzer = new BehaviorAnalyzer();
   }
 
   async initialize(): Promise<void> {
@@ -62,6 +65,7 @@ class EdgeAgent {
       await this.detector.initialize();
       await this.queue.initialize();
       await this.ppeDetector.initialize();
+      await this.behaviorAnalyzer.initialize();
 
       // Initialize MeshConnect if enabled
       if (process.env.ENABLE_MESHCONNECT === "true" && process.env.MESHCONNECT_DEVICE_ID) {
@@ -165,6 +169,19 @@ class EdgeAgent {
         detections = this.tracker.update(detections);
       }
 
+      // Run behavior analysis for tracked persons (enriches TrackedObject + Detection)
+      if (this.behaviorAnalyzer.isReady) {
+        const trackedNow = this.tracker.getTracks();
+        for (const detection of detections) {
+          if (detection.trackId == null) continue;
+          const tracked = trackedNow.find(t => t.id === detection.trackId);
+          if (tracked) {
+            await this.behaviorAnalyzer.analyzeTrackedPerson(tracked, detection, image);
+            this.behaviorAnalyzer.applyToDetection(detection, tracked);
+          }
+        }
+      }
+
       // Analyze zones
       const zoneAnalysis = this.zoneAnalyzer.analyzeDetections(detections);
       const occupancyByZone = this.zoneAnalyzer.getOccupancyByZone(detections);
@@ -248,6 +265,13 @@ class EdgeAgent {
               boundingBox: detection.boundingBox,
               zoneIds: zoneAnalysis.zoneIds,
               riskScore,
+              // Behavior enrichment (persons only)
+              ...(detection.behavior     && { behavior:     detection.behavior }),
+              ...(detection.behaviorConf != null && { behaviorConf: detection.behaviorConf }),
+              // Conservation context
+              ...(CONSERVATION_TIER[detection.type] && {
+                conservationTier: CONSERVATION_TIER[detection.type],
+              }),
               metadata: {
                 trackId: detection.trackId,
                 breaches: zoneAnalysis.breaches.filter(

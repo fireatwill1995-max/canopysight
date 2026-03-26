@@ -1,9 +1,10 @@
 import * as ort from "onnxruntime-node";
 import * as fs from "fs/promises";
+import * as path from "path";
 
 /**
- * Model Manager for YOLO models
- * Supports multiple model variants and fine-tuned models
+ * Model Manager for YOLO / Canopy wildlife models.
+ * Auto-discovers fine-tuned models via JSON sidecar files written by export_onnx.py.
  */
 export interface ModelInfo {
   name: string;
@@ -15,121 +16,128 @@ export interface ModelInfo {
   accuracy: number; // mAP score
 }
 
+/** Shape of the JSON sidecar written by packages/ml-training/src/export_onnx.py */
+interface ModelMetaSidecar {
+  name:        string;
+  version:     string;
+  inputSize:   number;
+  classes:     string[];
+  framework:   string;
+  description: string;
+  exportedAt:  string;
+}
+
+const MODELS_DIR = path.join(__dirname, "..", "..", "models");
+
 export class ModelManager {
   private models: Map<string, ModelInfo> = new Map();
   private currentModel: string | null = null;
 
   constructor() {
-    // Register available models
     this.registerDefaultModels();
   }
 
-  /**
-   * Register default YOLO models
-   */
+  /** Register built-in fallback models and scan for trained sidecar models. */
   private registerDefaultModels(): void {
-    // YOLOv8n - Nano (fastest, lowest accuracy)
+    // YOLOv8n — generic COCO baseline (fastest)
     this.models.set("yolov8n", {
       name: "YOLOv8n",
-      path: "./models/yolov8n.onnx",
+      path: path.join(MODELS_DIR, "yolov8n.onnx"),
       version: "8.0",
       inputSize: 640,
       classes: ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat"],
       quantized: false,
-      accuracy: 0.37, // mAP50
+      accuracy: 0.37,
     });
 
-    // YOLOv8s - Small (balanced)
-    this.models.set("yolov8s", {
-      name: "YOLOv8s",
-      path: "./models/yolov8s.onnx",
-      version: "8.0",
+    // Canopy Wildlife v1 — YOLO11 fine-tuned (registered with placeholder; sidecar loaded async)
+    this.models.set("canopy-wildlife-v1", {
+      name: "Canopy Wildlife v1",
+      path: path.join(MODELS_DIR, "canopy-wildlife-v1.onnx"),
+      version: "1.0.0",
       inputSize: 640,
-      classes: ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat"],
+      classes: [
+        "person", "person_group",
+        "vehicle_4wd", "vehicle_truck", "vehicle_motorbike", "vehicle_boat",
+        "elephant", "lion", "leopard", "rhinoceros", "buffalo", "zebra",
+        "giraffe", "hippopotamus", "crocodile", "cheetah", "wild_dog",
+        "hyena", "pangolin", "primate",
+        "bird", "reptile",
+        "drone", "weapon", "snare", "trap",
+      ],
       quantized: false,
-      accuracy: 0.44, // mAP50
-    });
-
-    // Fine-tuned rail safety model (if available)
-    this.models.set("rail-safety-v1", {
-      name: "Rail Safety Fine-tuned",
-      path: "./models/rail-safety-v1.onnx",
-      version: "1.0",
-      inputSize: 640,
-      classes: ["person", "vehicle", "animal", "equipment", "debris"],
-      quantized: true,
-      accuracy: 0.78, // Higher accuracy for rail-specific scenarios
+      accuracy: 0.85, // Expected post fine-tune mAP50
     });
   }
 
   /**
-   * Load a model
+   * Attempt to update a model's metadata from its JSON sidecar.
+   * Called before loading so classes/inputSize reflect the actual trained model.
    */
+  private async loadSidecar(modelKey: string): Promise<void> {
+    const info = this.models.get(modelKey);
+    if (!info) return;
+
+    const sidecarPath = info.path.replace(/\.onnx$/, ".json");
+    try {
+      const raw = await fs.readFile(sidecarPath, "utf-8");
+      const meta: ModelMetaSidecar = JSON.parse(raw);
+      // Overwrite with authoritative values from training pipeline
+      info.version   = meta.version   ?? info.version;
+      info.inputSize = meta.inputSize  ?? info.inputSize;
+      info.classes   = meta.classes?.length ? meta.classes : info.classes;
+      console.log(`📋 Loaded model sidecar: ${sidecarPath}`);
+    } catch {
+      // Sidecar absent — use defaults registered above (fine for pre-training)
+    }
+  }
+
+  /** Load a model, updating metadata from sidecar first. */
   async loadModel(modelName: string): Promise<ort.InferenceSession> {
     const modelInfo = this.models.get(modelName);
     if (!modelInfo) {
-      throw new Error(`Model ${modelName} not found. Available models: ${Array.from(this.models.keys()).join(", ")}`);
+      throw new Error(`Model "${modelName}" not found. Available: ${Array.from(this.models.keys()).join(", ")}`);
     }
 
-    // Check if model file exists
+    // Refresh class list / inputSize from training sidecar if present
+    await this.loadSidecar(modelName);
+
+    // Verify ONNX file exists
     try {
       await fs.access(modelInfo.path);
-    } catch (accessError) {
-      // Fallback to default if fine-tuned model doesn't exist
-      if (modelName === "rail-safety-v1") {
-        console.warn(`Fine-tuned model not found at ${modelInfo.path}, falling back to default model`);
+    } catch {
+      // For non-default models, fall back gracefully to yolov8n
+      if (modelName !== "yolov8n") {
+        console.warn(`Model not found at ${modelInfo.path} — falling back to yolov8n`);
         return this.loadModel("yolov8n");
       }
-      const errorMessage = accessError instanceof Error ? accessError.message : "Unknown error";
-      throw new Error(`Model file not found: ${modelInfo.path}. Error: ${errorMessage}`);
+      throw new Error(`Model file not found: ${modelInfo.path}`);
     }
 
     const session = await ort.InferenceSession.create(modelInfo.path, {
       executionProviders: ["cpu"],
-      graphOptimizationLevel: "all", // Enable all optimizations
-      enableCpuMemArena: true, // Memory optimization
+      graphOptimizationLevel: "all",
+      enableCpuMemArena: true,
     });
 
     this.currentModel = modelName;
-    console.log(`✅ Loaded model: ${modelInfo.name} (mAP: ${modelInfo.accuracy})`);
-    
+    console.log(`✅ Loaded model: ${modelInfo.name} v${modelInfo.version} (${modelInfo.classes.length} classes)`);
     return session;
   }
 
-  /**
-   * Get current model info
-   */
   getCurrentModel(): ModelInfo | null {
     if (!this.currentModel) return null;
     return this.models.get(this.currentModel) || null;
   }
 
-  /**
-   * List available models
-   */
   listModels(): ModelInfo[] {
     return Array.from(this.models.values());
   }
 
   /**
-   * Get best model for current conditions
+   * Prefer the Canopy fine-tuned model; fall back to yolov8n if not yet trained.
    */
-  getBestModel(prioritizeAccuracy: boolean = false): string {
-    if (prioritizeAccuracy) {
-      // Return model with highest accuracy
-      let bestModel = "yolov8n";
-      let bestAccuracy = 0;
-      
-      for (const [name, info] of this.models.entries()) {
-        if (info.accuracy > bestAccuracy) {
-          bestAccuracy = info.accuracy;
-          bestModel = name;
-        }
-      }
-      return bestModel;
-    }
-    
-    // Default: use fine-tuned if available, else nano
-    return this.models.has("rail-safety-v1") ? "rail-safety-v1" : "yolov8n";
+  getBestModel(_prioritizeAccuracy: boolean = false): string {
+    return "canopy-wildlife-v1";
   }
 }
