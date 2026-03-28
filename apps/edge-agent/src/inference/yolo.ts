@@ -1,7 +1,7 @@
 import * as ort from "onnxruntime-node";
 import sharp from "sharp";
 import { config } from "../config";
-import { Detection, DetectionType, BoundingBox } from "../types";
+import { Detection, DetectionType, BoundingBox, CONSERVATION_TIER } from "../types";
 import { ModelManager, ModelInfo } from "./model-manager";
 
 /**
@@ -13,7 +13,14 @@ export class YOLODetector {
   private modelManager: ModelManager;
   private modelInfo: ModelInfo | null = null;
   private inputSize: number = 640;
-  private classNames: DetectionType[] = ["person", "vehicle", "animal", "unknown"];
+  private classNames: DetectionType[] = [
+    "person", "person_group",
+    "vehicle_4wd", "vehicle_truck", "vehicle_motorbike", "vehicle_boat",
+    "elephant", "lion", "leopard", "rhinoceros", "buffalo", "zebra",
+    "giraffe", "hippopotamus", "crocodile", "cheetah", "wild_dog",
+    "hyena", "pangolin", "primate", "bird", "reptile",
+    "drone", "weapon", "snare", "trap", "unknown",
+  ];
   private nmsThreshold: number = 0.45; // Non-maximum suppression threshold
   private confidenceThreshold: number;
 
@@ -75,42 +82,17 @@ export class YOLODetector {
   }
 
   /**
-   * Map model classes to our detection types
+   * Map model classes to our detection types.
+   * Converts raw model class names (COCO or Canopy fine-tuned) to DetectionType values.
    */
   private mapClassesToDetectionTypes(modelClasses: string[]): DetectionType[] {
-    const mapping: Record<string, DetectionType> = {
-      person: "person",
-      people: "person",
-      pedestrian: "person",
-      car: "vehicle",
-      truck: "vehicle",
-      bus: "vehicle",
-      motorcycle: "vehicle",
-      bicycle: "vehicle",
-      train: "vehicle",
-      vehicle: "vehicle",
-      dog: "animal",
-      cat: "animal",
-      horse: "animal",
-      animal: "animal",
-      equipment: "equipment",
-      machinery: "equipment",
-      tool: "equipment",
-      debris: "debris",
-      obstacle: "debris",
-      hazard: "debris",
-    };
-
     const types = new Set<DetectionType>();
     for (const className of modelClasses) {
-      const lower = className.toLowerCase();
-      if (mapping[lower]) {
-        types.add(mapping[lower]);
-      }
+      types.add(this.mapClassNameToType(className));
     }
-
-    // Always include our base types (person, vehicle, animal, equipment, debris, unknown)
-    return Array.from(new Set([...types, "person", "vehicle", "animal", "equipment", "debris", "unknown"]));
+    // Always include fallback types
+    types.add("unknown");
+    return Array.from(types);
   }
 
   /**
@@ -325,6 +307,7 @@ export class YOLODetector {
                 confidence: Math.min(1, Math.max(0, confidence)),
                 boundingBox: { x, y, width: w, height: h },
                 timestamp: new Date(),
+                conservationTier: CONSERVATION_TIER[detectionType] ?? "none",
               },
               score: confidence,
             });

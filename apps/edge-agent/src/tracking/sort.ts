@@ -94,6 +94,7 @@ export class SORTTracker {
           type: detection.type,
           boundingBox: detection.boundingBox,
           confidence: detection.confidence,
+          speed: 0,
           firstSeen: now,
           lastSeen: now,
           dwellTime: 0,

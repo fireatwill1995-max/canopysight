@@ -104,6 +104,8 @@ export interface Detection {
   // Enriched by behavior analyzer (persons only)
   behavior?:    BehaviorFlag;
   behaviorConf?: number;
+  // Conservation context (set by YOLO detector for wildlife)
+  conservationTier?: ConservationTier;
 }
 
 export interface TrackedObject {

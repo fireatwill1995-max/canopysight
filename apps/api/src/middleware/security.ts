@@ -14,6 +14,7 @@ export function setupSecurityMiddleware(app: express.Application): void {
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
 }

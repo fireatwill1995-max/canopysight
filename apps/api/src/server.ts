@@ -34,10 +34,7 @@ eventAggregator.start().catch((error) => {
   });
 });
 
-// Security middleware
-setupSecurityMiddleware(app);
-
-// Allow localhost, ngrok, Fly web app, and ALLOWED_ORIGINS
+// CORS must be registered BEFORE Helmet / security middleware
 const corsOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
 const ngrokPattern = /^https:\/\/.*\.ngrok(-free)?\.(dev|io|app)$/;
 const defaultAllowed = [
@@ -45,6 +42,9 @@ const defaultAllowed = [
   "http://localhost:3001",
   "http://localhost:3002",
   "https://canopy-sight-web.fly.dev",
+  "https://canopysight.app",
+  "https://www.canopysight.app",
+  "https://api.canopysight.app",
 ];
 app.use(
   cors({
@@ -77,6 +77,9 @@ app.use(
     ],
   })
 );
+
+// Security middleware (after CORS so preflight responses include CORS headers)
+setupSecurityMiddleware(app);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 

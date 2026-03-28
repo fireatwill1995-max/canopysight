@@ -9,13 +9,17 @@ install:
 	pip install -e ".[dev]"
 	@echo "✓ Dependencies installed"
 
-# Download and prepare all training datasets
-# Set ROBOFLOW_API_KEY env var first (free at roboflow.com)
+# Download and prepare all training datasets from Open Images V6 (no API key)
 prepare:
-	python scripts/prepare_data.py --roboflow-key $${ROBOFLOW_API_KEY}
+	python scripts/prepare_openimages.py --max-per-class 300
 
-prepare-no-coco:
-	python scripts/prepare_data.py --roboflow-key $${ROBOFLOW_API_KEY} --skip-coco
+# Faster prep: 100 images per class (~2k train images) for quick validation
+prepare-fast:
+	python scripts/prepare_openimages.py --max-per-class 100
+
+# Legacy: Roboflow prep (requires ROBOFLOW_API_KEY env var)
+prepare-roboflow:
+	python scripts/prepare_data.py --roboflow-key $${ROBOFLOW_API_KEY}
 
 # Train YOLO11 detector
 train-detector:
